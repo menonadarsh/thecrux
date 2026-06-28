@@ -985,3 +985,135 @@ a.commit-subject { color: var(--text); }
 /* owner byline */
 .repo-owner { color: var(--muted); font-size: 12px; }
 .repo-owner-at { color: var(--accent); }
+
+/* ============================================================
+   Pull requests (v0.8)
+   ============================================================ */
+
+/* PR state filter tabs */
+.prfilter { display: flex; gap: 4px; flex: 1; }
+.prfilter-tab { padding: 6px 12px; border-radius: var(--radius); color: var(--muted); font-size: 13px; }
+.prfilter-tab:hover { color: var(--text); background: var(--bg-hover); text-decoration: none; }
+.prfilter-tab.is-active { color: var(--text); background: var(--bg-elev); border: 1px solid var(--border); font-weight: 600; }
+
+/* PR list */
+.prlist { list-style: none; margin: 0; padding: 0; }
+.prrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  margin-bottom: 8px;
+}
+.prrow:hover, .prrow.is-active { border-color: var(--accent); background: var(--bg-hover); }
+.pr-state { flex: none; width: 18px; text-align: center; font-size: 14px; }
+.pr-state-open { color: #3fb950; }
+.pr-state-merged { color: #a371f7; }
+.pr-state-closed { color: var(--danger); }
+[data-theme="light"] .pr-state-open { color: #1a7f37; }
+[data-theme="light"] .pr-state-merged { color: #8250df; }
+.prrow-body { min-width: 0; flex: 1; }
+.prrow-title { display: block; color: var(--text); font-weight: 600; }
+.prrow-meta { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+.ref-chip {
+  display: inline-block;
+  padding: 0 7px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+}
+
+/* compare bar */
+.compare-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  margin-bottom: 16px;
+}
+.compare-label { color: var(--muted); font-size: 13px; }
+.compare-arrow { color: var(--accent); font-weight: 700; }
+.ref-select {
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.ref-select:focus { outline: none; border-color: var(--accent); }
+
+.compare-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-inset);
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.merge-flag { margin-left: auto; padding: 2px 10px; border-radius: 999px; font-size: 12px; }
+.merge-ff, .merge-clean { background: rgba(63,185,80,.15); color: #3fb950; }
+.merge-conflict { background: rgba(248,81,73,.15); color: var(--danger); }
+[data-theme="light"] .merge-ff, [data-theme="light"] .merge-clean { color: #1a7f37; }
+
+.field-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  resize: vertical;
+}
+.field-textarea:focus { outline: none; }
+
+/* PR detail */
+.pr-header { margin-bottom: 14px; }
+.pr-title { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+.pr-num { color: var(--muted); font-weight: 400; }
+.pr-subline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px; }
+.pr-state-badge { padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pr-state-badge.pr-state-open { background: rgba(63,185,80,.15); color: #3fb950; }
+.pr-state-badge.pr-state-merged { background: rgba(163,113,247,.15); color: #a371f7; }
+.pr-state-badge.pr-state-closed { background: rgba(248,81,73,.15); color: var(--danger); }
+[data-theme="light"] .pr-state-badge.pr-state-open { color: #1a7f37; }
+[data-theme="light"] .pr-state-badge.pr-state-merged { color: #8250df; }
+
+.merge-panel { padding: 16px; }
+.merge-line { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.merge-glyph { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 700; flex: none; }
+.merge-glyph.ok { background: rgba(63,185,80,.18); color: #3fb950; }
+.merge-glyph.conflict { background: rgba(248,81,73,.18); color: var(--danger); }
+.merge-actions { display: flex; gap: 10px; margin-top: 14px; }
+.inline-form { display: inline; }
+
+.prsection-title { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin: 22px 0 10px; }
+.prcommits { list-style: none; margin: 0 0 16px; padding: 0; }
+.prcommit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.prcommit-subject { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+
+.refrow-pr { color: var(--accent); font-size: 12px; border: 1px solid var(--accent); padding: 1px 8px; border-radius: 999px; }
+.refrow-pr:hover { background: var(--accent-soft); text-decoration: none; }

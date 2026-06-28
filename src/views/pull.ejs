@@ -1,0 +1,107 @@
+<%- include("partials/header", { title: "#" + pr.id + " · " + repo.name, crumb: "~/repos/" + repo.name + "/pulls/" + pr.id }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">pull #<%= pr.id %></span>
+</section>
+
+<%- include("partials/repobar") %>
+
+<div class="pr-header">
+  <h1 class="pr-title"><%= pr.title %> <span class="pr-num">#<%= pr.id %></span></h1>
+  <div class="pr-subline">
+    <span class="pr-state-badge pr-state-<%= pr.state %>">
+      <%= pr.state === 'merged' ? '⇄ merged' : pr.state === 'closed' ? '✕ closed' : '● open' %>
+    </span>
+    <span class="muted">
+      <strong>@<%= pr.author %></strong> wants to merge
+      <span class="ref-chip"><%= pr.head %></span> into <span class="ref-chip"><%= pr.base %></span>
+      · <%= relativeTime(new Date(pr.createdAt)) %>
+    </span>
+  </div>
+</div>
+
+<% if (pr.body) { %>
+  <div class="card"><div class="md-body"><%- markdownBody %></div></div>
+<% } %>
+
+<% if (typeof mergeError !== "undefined" && mergeError) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= mergeError %></div>
+<% } %>
+
+<div class="card merge-panel merge-panel-<%= pr.state %>">
+  <% if (pr.state === 'merged') { %>
+    <div class="merge-line">
+      <span class="merge-glyph">⇄</span>
+      <span>Merged by <strong>@<%= pr.mergedBy %></strong> <%= relativeTime(new Date(pr.mergedAt)) %>
+        <% if (pr.mergeCommit) { %>
+          as <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= pr.mergeCommit %>"><%= pr.mergeCommit.slice(0,7) %></a>
+        <% } %>
+        <%= pr.fastForward ? "(fast-forward)" : "" %>
+      </span>
+    </div>
+  <% } else if (pr.state === 'closed') { %>
+    <div class="merge-line">
+      <span class="merge-glyph">✕</span>
+      <span>Closed without merging.</span>
+      <% if (locals.currentUser) { %>
+        <form method="post" action="/<%= encodeURIComponent(repo.name) %>/pulls/<%= pr.id %>/reopen" class="inline-form">
+          <button class="kbtn" type="submit">reopen</button>
+        </form>
+      <% } %>
+    </div>
+  <% } else { %>
+    <div class="merge-line">
+      <% if (merge === 'identical') { %>
+        <span class="merge-glyph">i</span>
+        <span>Nothing to merge — <code><%= pr.head %></code> has no commits beyond <code><%= pr.base %></code>.</span>
+      <% } else if (merge === 'conflict') { %>
+        <span class="merge-glyph conflict">!</span>
+        <span>This branch has conflicts that must be resolved before merging.</span>
+      <% } else { %>
+        <span class="merge-glyph ok">✓</span>
+        <span>This branch <%= merge === 'ff' ? 'can be fast-forwarded' : 'has no conflicts' %>.</span>
+      <% } %>
+    </div>
+    <% if (locals.currentUser) { %>
+      <div class="merge-actions">
+        <% if (merge === 'ff' || merge === 'clean') { %>
+          <form method="post" action="/<%= encodeURIComponent(repo.name) %>/pulls/<%= pr.id %>/merge" class="inline-form">
+            <button class="kbtn primary" type="submit">merge pull request</button>
+          </form>
+        <% } %>
+        <form method="post" action="/<%= encodeURIComponent(repo.name) %>/pulls/<%= pr.id %>/close" class="inline-form">
+          <button class="kbtn" type="submit">close</button>
+        </form>
+      </div>
+    <% } else { %>
+      <p class="muted"><a href="/login">Sign in</a> to merge or close.</p>
+    <% } %>
+  <% } %>
+</div>
+
+<% if (comparison) { %>
+  <div class="prsection-title">
+    commits <span class="muted"><%= comparison.commits.length %></span>
+    · <span class="d-add">+<%= comparison.additions %></span>
+    <span class="d-del">−<%= comparison.deletions %></span>
+    · <%= comparison.files.length %> files
+  </div>
+  <% if (comparison.commits.length) { %>
+    <ul class="prcommits" role="list">
+      <% comparison.commits.forEach(function (c) { %>
+        <li class="prcommit">
+          <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= c.hash %>"><%= c.shortHash %></a>
+          <span class="prcommit-subject"><%= c.subject %></span>
+          <span class="muted"><%= c.author %></span>
+        </li>
+      <% }); %>
+    </ul>
+  <% } %>
+
+  <% comparison.files.forEach(function (file) { %>
+    <%- include("partials/filediff", { file: file }) %>
+  <% }); %>
+<% } %>
+
+<%- include("partials/footer") %>

@@ -4,7 +4,7 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 
 ## Status
 
-**v0.7 — users & authentication**
+**v0.8 — pull requests**
 
 - [x] Create bare git repositories from a web UI
 - [x] List repositories on the home page
@@ -16,8 +16,17 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 - [x] Markdown rendering (sanitized) + syntax highlighting (theme-aware)
 - [x] Branches & tags — overview pages, ref switcher, repo subnav
 - [x] Users & authentication — accounts, sessions, repo ownership, push auth
-- [ ] Pull requests
+- [x] Pull requests — compare refs, view diff, merge (ff + merge commit)
 - [ ] Issues
+
+### Pull requests
+
+Open a PR from `/:repo/pulls/new` (or the "open PR" link on the branches
+page), comparing a compare ref into a base ref. The PR page shows the commits
+and combined diff and, for signed-in users, a merge button. Merges are
+performed server-side directly on the bare repo: fast-forward when possible,
+otherwise a real two-parent merge commit (`git merge-tree` + `commit-tree`).
+Conflicting branches are detected and blocked.
 
 ### Authentication
 

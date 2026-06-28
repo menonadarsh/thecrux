@@ -1,0 +1,96 @@
+<%- include("partials/header", { title: "new pull · " + repo.name, crumb: "~/repos/" + repo.name + "/pulls/new" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">compare &amp; pull</span>
+</section>
+
+<%- include("partials/repobar") %>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<%
+  function refOptions(selected) {
+    var html = "";
+    if (branches.length) {
+      html += '<optgroup label="branches">';
+      branches.forEach(function (b) {
+        html += '<option value="' + b + '"' + (b === selected ? ' selected' : '') + '>' + b + '</option>';
+      });
+      html += '</optgroup>';
+    }
+    if (tags.length) {
+      html += '<optgroup label="tags">';
+      tags.forEach(function (t) {
+        html += '<option value="' + t + '"' + (t === selected ? ' selected' : '') + '>' + t + '</option>';
+      });
+      html += '</optgroup>';
+    }
+    return html;
+  }
+%>
+
+<form class="compare-bar" method="get" action="/<%= encodeURIComponent(repo.name) %>/pulls/new">
+  <span class="compare-label">base</span>
+  <select class="ref-select" name="base"><%- refOptions(base) %></select>
+  <span class="compare-arrow">←</span>
+  <span class="compare-label">compare</span>
+  <select class="ref-select" name="head"><option value="">choose…</option><%- refOptions(head) %></select>
+  <button class="kbtn" type="submit">compare</button>
+</form>
+
+<% if (head && comparison) { %>
+  <% if (comparison.identical) { %>
+    <div class="alert"><span class="alert-mark">i</span> <code><%= head %></code> has no commits beyond <code><%= base %></code>.</div>
+  <% } else { %>
+    <div class="compare-summary">
+      <span><strong><%= comparison.commits.length %></strong> commit<%= comparison.commits.length === 1 ? "" : "s" %></span>
+      <span><strong><%= comparison.files.length %></strong> file<%= comparison.files.length === 1 ? "" : "s" %></span>
+      <% if (comparison.additions) { %><span class="d-add">+<%= comparison.additions %></span><% } %>
+      <% if (comparison.deletions) { %><span class="d-del">−<%= comparison.deletions %></span><% } %>
+      <span class="merge-flag merge-<%= merge %>">
+        <%= merge === 'ff' ? 'fast-forward' : merge === 'clean' ? 'mergeable' : merge === 'conflict' ? 'conflicts' : '' %>
+      </span>
+    </div>
+
+    <form class="form" method="post" action="/<%= encodeURIComponent(repo.name) %>/pulls">
+      <input type="hidden" name="base" value="<%= base %>" />
+      <input type="hidden" name="head" value="<%= head %>" />
+      <label class="field">
+        <span class="field-label">title</span>
+        <div class="field-mono">
+          <input type="text" name="title" value="<%= comparison.commits.length === 1 ? comparison.commits[0].subject : '' %>" placeholder="<%= head %> into <%= base %>" autocomplete="off" autofocus />
+        </div>
+      </label>
+      <label class="field">
+        <span class="field-label">description <span class="muted">(optional)</span></span>
+        <div class="field-mono">
+          <textarea name="body" rows="4" class="field-textarea" placeholder="Describe the change…"></textarea>
+        </div>
+      </label>
+      <div class="form-actions">
+        <button class="kbtn primary" type="submit">create pull request</button>
+      </div>
+    </form>
+
+    <div class="prsection-title">commits</div>
+    <ul class="prcommits" role="list">
+      <% comparison.commits.forEach(function (c) { %>
+        <li class="prcommit">
+          <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= c.hash %>"><%= c.shortHash %></a>
+          <span class="prcommit-subject"><%= c.subject %></span>
+          <span class="muted"><%= c.author %></span>
+        </li>
+      <% }); %>
+    </ul>
+
+    <div class="prsection-title">diff</div>
+    <% comparison.files.forEach(function (file) { %>
+      <%- include("partials/filediff", { file: file }) %>
+    <% }); %>
+  <% } %>
+<% } %>
+
+<%- include("partials/footer") %>

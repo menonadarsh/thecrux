@@ -19,6 +19,9 @@
         <% if (b.name === defaultBranch) { %><span class="tag tag-branch">default</span><% } %>
         <span class="refrow-sub"><%= b.subject %></span>
         <span class="refrow-meta">
+          <% if (locals.currentUser && defaultBranch && b.name !== defaultBranch) { %>
+            <a class="refrow-pr" href="/<%= encodeURIComponent(repo.name) %>/pulls/new?base=<%= encodeURIComponent(defaultBranch) %>&head=<%= encodeURIComponent(b.name) %>">open PR</a>
+          <% } %>
           <a class="refrow-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= b.shortHash %>"><%= b.shortHash %></a>
           <% if (b.date) { %><span class="muted"><%= relativeTime(b.date) %></span><% } %>
         </span>

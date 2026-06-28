@@ -1,0 +1,43 @@
+<%- include("partials/header", { title: "pulls · " + repo.name, crumb: "~/repos/" + repo.name + "/pulls" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">pulls</span>
+</section>
+
+<%- include("partials/repobar") %>
+
+<div class="toolbar">
+  <div class="prfilter">
+    <a class="prfilter-tab <%= filter === 'open' ? 'is-active' : '' %>" href="?state=open">● <%= counts.open %> open</a>
+    <a class="prfilter-tab <%= filter === 'merged' ? 'is-active' : '' %>" href="?state=merged">⇄ <%= counts.merged %> merged</a>
+    <a class="prfilter-tab <%= filter === 'closed' ? 'is-active' : '' %>" href="?state=closed">✕ <%= counts.closed %> closed</a>
+  </div>
+  <% if (locals.currentUser) { %>
+    <a class="kbtn primary" href="/<%= encodeURIComponent(repo.name) %>/pulls/new">new pull request</a>
+  <% } %>
+</div>
+
+<% if (pulls.length === 0) { %>
+  <div class="blank"><p class="muted">No <%= filter %> pull requests.</p></div>
+<% } else { %>
+  <ul class="prlist" role="list">
+    <% pulls.forEach(function (pr) { %>
+      <li class="prrow" data-nav-item data-name="<%= pr.title.toLowerCase() %>">
+        <span class="pr-state pr-state-<%= pr.state %>" title="<%= pr.state %>">
+          <%= pr.state === 'merged' ? '⇄' : pr.state === 'closed' ? '✕' : '●' %>
+        </span>
+        <span class="prrow-body">
+          <a class="prrow-title" href="/<%= encodeURIComponent(repo.name) %>/pulls/<%= pr.id %>"><%= pr.title %></a>
+          <span class="prrow-meta">
+            #<%= pr.id %> · @<%= pr.author %> ·
+            <span class="ref-chip"><%= pr.head %></span> → <span class="ref-chip"><%= pr.base %></span> ·
+            <%= relativeTime(new Date(pr.createdAt)) %>
+          </span>
+        </span>
+      </li>
+    <% }); %>
+  </ul>
+<% } %>
+
+<%- include("partials/footer") %>

@@ -56,6 +56,7 @@
   <nav class="repotabs">
     <a class="repotab <%= rbActive === 'files' ? 'is-active' : '' %>" href="/<%= rbName %>/tree/<%= encodeURIComponent(rbRef) %>">files</a>
     <a class="repotab <%= rbActive === 'commits' ? 'is-active' : '' %>" href="/<%= rbName %>/commits/<%= encodeURIComponent(rbRef) %>">commits</a>
+    <a class="repotab <%= rbActive === 'pulls' ? 'is-active' : '' %>" href="/<%= rbName %>/pulls">pulls<% if (rb.pullCount != null) { %> <span class="repotab-count"><%= rb.pullCount %></span><% } %></a>
     <a class="repotab <%= rbActive === 'branches' ? 'is-active' : '' %>" href="/<%= rbName %>/branches">branches<% if (rb.branchCount != null) { %> <span class="repotab-count"><%= rb.branchCount %></span><% } %></a>
     <a class="repotab <%= rbActive === 'tags' ? 'is-active' : '' %>" href="/<%= rbName %>/tags">tags<% if (rb.tagCount != null) { %> <span class="repotab-count"><%= rb.tagCount %></span><% } %></a>
   </nav>
