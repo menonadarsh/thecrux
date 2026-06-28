@@ -1,36 +1,58 @@
-<%- include("partials/header", { title: "Repositories" }) %>
+<%- include("partials/header", { title: "repositories", crumb: "~/repos" }) %>
 
-<div class="page-head">
-  <h1>Repositories</h1>
-  <p class="muted"><%= repos.length %> <%= repos.length === 1 ? "repository" : "repositories" %></p>
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">ls repos</span>
+  <span class="termline-meta"><%= repos.length %> found</span>
+</section>
+
+<div class="toolbar">
+  <div class="filter">
+    <span class="filter-icon">/</span>
+    <input id="repo-filter" type="text" placeholder="filter repositories…" autocomplete="off" spellcheck="false" />
+  </div>
+  <a class="kbtn primary" href="/new"><span class="kbtn-key">n</span> new repository</a>
 </div>
 
 <% if (repos.length === 0) { %>
-  <div class="empty-state">
+  <div class="blank">
+    <pre class="blank-art">  ┌─────────────┐
+  │   empty     │
+  │   ·  ·  ·   │
+  └─────────────┘</pre>
     <p>No repositories yet.</p>
-    <a class="btn btn-primary" href="/new">Create your first repository</a>
+    <a class="kbtn primary" href="/new">create your first repository</a>
   </div>
 <% } else { %>
-  <ul class="repo-list">
-    <% repos.forEach(function (repo) { %>
-      <li class="repo-card">
-        <div class="repo-card-main">
-          <a class="repo-name" href="/<%= encodeURIComponent(repo.name) %>"><%= repo.name %></a>
-          <% if (repo.description) { %>
-            <p class="repo-desc"><%= repo.description %></p>
-          <% } %>
-        </div>
-        <div class="repo-card-meta">
-          <% if (repo.empty) { %>
-            <span class="badge">empty</span>
-          <% } else { %>
-            <span class="badge badge-branch"><%= repo.defaultBranch %></span>
-          <% } %>
-          <span class="muted">updated <%= repo.updatedAt.toLocaleString() %></span>
-        </div>
+  <ul class="repos" id="repo-list" role="list">
+    <% repos.forEach(function (repo, i) { %>
+      <li class="repo" data-nav-item data-name="<%= repo.name.toLowerCase() %> <%= (repo.description||'').toLowerCase() %>">
+        <a class="repo-hit" href="/<%= encodeURIComponent(repo.name) %>">
+          <span class="repo-spine"></span>
+          <span class="repo-body">
+            <span class="repo-line">
+              <span class="repo-name"><%= repo.name %></span>
+              <% if (repo.empty) { %>
+                <span class="tag tag-empty">empty</span>
+              <% } else { %>
+                <span class="tag tag-branch"><%= repo.defaultBranch %></span>
+              <% } %>
+            </span>
+            <% if (repo.description) { %>
+              <span class="repo-desc"><%= repo.description %></span>
+            <% } else { %>
+              <span class="repo-desc muted">no description</span>
+            <% } %>
+          </span>
+          <span class="repo-aside">
+            <span class="repo-time" title="<%= repo.updatedAt.toISOString() %>"><%= repo.updatedAt.toLocaleDateString() %></span>
+            <span class="repo-go">↵</span>
+          </span>
+        </a>
       </li>
     <% }); %>
   </ul>
+  <p class="nores" id="repo-noresults" hidden>no matches.</p>
 <% } %>
 
 <%- include("partials/footer") %>

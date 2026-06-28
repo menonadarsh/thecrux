@@ -4,17 +4,36 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title><%= typeof title !== "undefined" ? title + " · " + appName : appName %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="/style.css" />
+  <script>
+    // Apply theme before first paint to avoid a flash.
+    (function () {
+      try {
+        var saved = localStorage.getItem("crux-theme");
+        var theme = saved || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+        document.documentElement.setAttribute("data-theme", theme);
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <a class="brand" href="/">
-        <span class="brand-mark">◆</span> <%= appName %>
+  <div class="shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="Home">
+        <span class="brand-prompt">crux</span><span class="brand-caret">❯</span>
+        <span class="brand-path"><%= typeof crumb !== "undefined" ? crumb : "~" %></span>
       </a>
-      <nav>
-        <a class="btn btn-primary" href="/new">New repository</a>
-      </nav>
-    </div>
-  </header>
-  <main class="container">
+      <div class="masthead-tools">
+        <button class="kbtn" type="button" data-action="palette" title="Command palette (⌘K)">
+          <span class="kbtn-key">⌘K</span> search
+        </button>
+        <button class="kbtn icon" type="button" data-action="theme" title="Toggle theme (t)" aria-label="Toggle theme">
+          <span class="theme-icon theme-icon-dark">◑</span>
+          <span class="theme-icon theme-icon-light">◐</span>
+        </button>
+      </div>
+    </header>
+    <main class="content">

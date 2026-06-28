@@ -4,6 +4,23 @@ import { createRepo, getRepo, listRepos, RepoError } from "../git/repos.js";
 
 export const reposRouter = Router();
 
+// JSON feed for the command palette / client-side search.
+reposRouter.get("/api/repos.json", async (_req, res, next) => {
+  try {
+    const repos = await listRepos();
+    res.json(
+      repos.map((r) => ({
+        name: r.name,
+        description: r.description,
+        empty: r.empty,
+        defaultBranch: r.defaultBranch,
+      })),
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Home — list all repositories.
 reposRouter.get("/", async (_req, res, next) => {
   try {

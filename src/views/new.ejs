@@ -1,43 +1,49 @@
-<%- include("partials/header", { title: "New repository" }) %>
+<%- include("partials/header", { title: "new repository", crumb: "~/repos/new" }) %>
 
-<div class="page-head">
-  <h1>Create a new repository</h1>
-  <p class="muted">A bare git repository will be created on the server.</p>
-</div>
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">init repository</span>
+</section>
 
 <% if (error) { %>
-  <div class="alert alert-error"><%= error %></div>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
 <% } %>
 
 <form class="form" method="post" action="/new">
   <label class="field">
-    <span class="field-label">Repository name</span>
-    <input
-      type="text"
-      name="name"
-      value="<%= values.name %>"
-      placeholder="my-project"
-      autocomplete="off"
-      autofocus
-      required
-    />
-    <span class="field-hint">Letters, numbers, '.', '_' and '-'. No spaces.</span>
+    <span class="field-label">name</span>
+    <div class="field-mono">
+      <span class="field-prefix">crux/</span>
+      <input
+        type="text"
+        name="name"
+        value="<%= values.name %>"
+        placeholder="my-project"
+        autocomplete="off"
+        spellcheck="false"
+        autofocus
+        required
+      />
+    </div>
+    <span class="field-hint">letters, numbers, <code>.</code> <code>_</code> <code>-</code> — no spaces.</span>
   </label>
 
   <label class="field">
-    <span class="field-label">Description <span class="muted">(optional)</span></span>
-    <input
-      type="text"
-      name="description"
-      value="<%= values.description %>"
-      placeholder="A short description of your project"
-      autocomplete="off"
-    />
+    <span class="field-label">description <span class="muted">(optional)</span></span>
+    <div class="field-mono">
+      <input
+        type="text"
+        name="description"
+        value="<%= values.description %>"
+        placeholder="what is this for?"
+        autocomplete="off"
+      />
+    </div>
   </label>
 
   <div class="form-actions">
-    <button class="btn btn-primary" type="submit">Create repository</button>
-    <a class="btn" href="/">Cancel</a>
+    <button class="kbtn primary" type="submit">create repository</button>
+    <a class="kbtn" href="/">cancel</a>
   </div>
 </form>
 

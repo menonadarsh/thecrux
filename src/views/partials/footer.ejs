@@ -1,8 +1,43 @@
-  </main>
-  <footer class="footer">
-    <div class="container">
-      <span><%= appName %> — self-hosted code hosting.</span>
+    </main>
+  </div>
+
+  <!-- Editor-style status bar -->
+  <footer class="statusbar" id="statusbar">
+    <div class="statusbar-left">
+      <span class="status-seg status-brand"><%= appName %></span>
+      <span class="status-seg" id="status-context"><%= typeof crumb !== "undefined" ? crumb : "~" %></span>
+    </div>
+    <div class="statusbar-right">
+      <span class="status-hint"><kbd>⌘K</kbd> palette</span>
+      <span class="status-hint"><kbd>j</kbd><kbd>k</kbd> move</span>
+      <span class="status-hint"><kbd>n</kbd> new</span>
+      <span class="status-hint"><kbd>t</kbd> theme</span>
     </div>
   </footer>
+
+  <!-- Command palette -->
+  <div class="palette-backdrop" id="palette" hidden>
+    <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+      <div class="palette-input-row">
+        <span class="palette-caret">❯</span>
+        <input
+          id="palette-input"
+          class="palette-input"
+          type="text"
+          placeholder="Jump to a repo, or run a command…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+      <ul class="palette-results" id="palette-results"></ul>
+      <div class="palette-foot">
+        <span><kbd>↑↓</kbd> navigate</span>
+        <span><kbd>↵</kbd> select</span>
+        <span><kbd>esc</kbd> dismiss</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
 </body>
 </html>

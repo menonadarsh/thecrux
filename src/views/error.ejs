@@ -1,7 +1,9 @@
-<%- include("partials/header", { title: "Error" }) %>
-<div class="empty-state">
-  <h1>Something went wrong</h1>
+<%- include("partials/header", { title: "error", crumb: "~/error" }) %>
+<div class="blank">
+  <pre class="blank-art">  ┌───────────┐
+  │  ✗ error  │
+  └───────────┘</pre>
   <p class="muted"><%= message %></p>
-  <a class="btn" href="/">Back home</a>
+  <a class="kbtn" href="/">cd ~</a>
 </div>
 <%- include("partials/footer") %>

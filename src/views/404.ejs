@@ -1,7 +1,11 @@
-<%- include("partials/header", { title: "Not found" }) %>
-<div class="empty-state">
-  <h1>404</h1>
-  <p class="muted">Nothing found at <code><%= name %></code>.</p>
-  <a class="btn" href="/">Back home</a>
+<%- include("partials/header", { title: "not found", crumb: "~/404" }) %>
+<div class="blank">
+  <pre class="blank-art">  ┌───────────┐
+  │  4 0 4    │
+  │  no such  │
+  │  path     │
+  └───────────┘</pre>
+  <p class="muted"><code><%= name %></code> does not exist.</p>
+  <a class="kbtn" href="/">cd ~</a>
 </div>
 <%- include("partials/footer") %>

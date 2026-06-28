@@ -1,29 +1,31 @@
-<%- include("partials/header", { title: repo.name }) %>
+<%- include("partials/header", { title: repo.name, crumb: "~/repos/" + repo.name }) %>
 
-<div class="page-head repo-head">
-  <h1><a href="/">repositories</a> / <strong><%= repo.name %></strong></h1>
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">cd <%= repo.name %></span>
   <% if (repo.empty) { %>
-    <span class="badge">empty</span>
+    <span class="tag tag-empty">empty</span>
   <% } else { %>
-    <span class="badge badge-branch"><%= repo.defaultBranch %></span>
+    <span class="tag tag-branch"><%= repo.defaultBranch %></span>
   <% } %>
-</div>
+</section>
 
 <% if (repo.description) { %>
-  <p class="repo-desc-lg"><%= repo.description %></p>
+  <p class="repo-tagline"><%= repo.description %></p>
 <% } %>
 
-<section class="panel">
-  <h2>Clone</h2>
-  <p class="muted">Use git over HTTP:</p>
-  <pre class="clone-box"><code>git clone <%= cloneUrl %></code></pre>
+<section class="card">
+  <div class="card-head"><span class="card-title">clone</span></div>
+  <div class="copy-row" data-copy="<%= cloneUrl %>">
+    <code class="copy-text">git clone <%= cloneUrl %></code>
+    <button class="copy-btn" type="button" title="Copy">copy</button>
+  </div>
 </section>
 
 <% if (repo.empty) { %>
-  <section class="panel">
-    <h2>Quick setup</h2>
-    <p class="muted">This repository is empty. Push an existing project:</p>
-<pre class="clone-box"><code>cd my-project
+  <section class="card">
+    <div class="card-head"><span class="card-title">push an existing project</span></div>
+<pre class="codeblock"><code>cd my-project
 git init
 git add .
 git commit -m "Initial commit"
@@ -32,10 +34,10 @@ git remote add origin <%= cloneUrl %>
 git push -u origin main</code></pre>
   </section>
 <% } else { %>
-  <section class="panel">
-    <h2>Default branch</h2>
-    <p><span class="badge badge-branch"><%= repo.defaultBranch %></span></p>
-    <p class="muted">File browsing and commit history are coming in the next increment.</p>
+  <section class="card">
+    <div class="card-head"><span class="card-title">default branch</span></div>
+    <p><span class="tag tag-branch"><%= repo.defaultBranch %></span></p>
+    <p class="muted">File browsing &amp; commit history land in the next increment.</p>
   </section>
 <% } %>
 
