@@ -713,3 +713,110 @@ a.commit-subject { color: var(--text); }
 .dl-meta td { color: var(--faint); padding: 2px 8px; }
 [data-theme="light"] .dl-add { background: rgba(26,127,55,.10); }
 [data-theme="light"] .dl-add .dl-mark { color: #1a7f37; }
+
+/* ============================================================
+   Markdown rendering + syntax highlighting (v0.5)
+   ============================================================ */
+
+.is-hidden { display: none !important; }
+
+/* file language tag + rendered/source toggle */
+.blob-lang {
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+.blob-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; }
+.blob-tab {
+  padding: 3px 12px;
+  background: var(--bg);
+  border: none;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+.blob-tab + .blob-tab { border-left: 1px solid var(--border-strong); }
+.blob-tab.is-active { background: var(--accent); color: var(--accent-ink); }
+
+/* markdown body */
+.md-body { padding: 20px 22px; color: var(--text); line-height: 1.7; overflow-wrap: break-word; }
+.md-body > :first-child { margin-top: 0; }
+.md-body > :last-child { margin-bottom: 0; }
+.md-body h1, .md-body h2, .md-body h3, .md-body h4 { font-weight: 700; line-height: 1.3; margin: 26px 0 14px; }
+.md-body h1 { font-size: 26px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.md-body h2 { font-size: 21px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.md-body h3 { font-size: 17px; }
+.md-body h4 { font-size: 15px; }
+.md-body p { margin: 0 0 14px; }
+.md-body a { color: var(--accent); }
+.md-body ul, .md-body ol { margin: 0 0 14px; padding-left: 26px; }
+.md-body li { margin: 4px 0; }
+.md-body blockquote {
+  margin: 0 0 14px;
+  padding: 2px 16px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--muted);
+}
+.md-body code {
+  background: var(--bg-inset);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.md-body pre {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  overflow-x: auto;
+  margin: 0 0 14px;
+}
+.md-body pre code { background: none; padding: 0; font-size: 13px; line-height: 1.6; }
+.md-body img { max-width: 100%; }
+.md-body hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.md-body table { border-collapse: collapse; margin: 0 0 14px; display: block; overflow-x: auto; }
+.md-body th, .md-body td { border: 1px solid var(--border); padding: 6px 12px; }
+.md-body th { background: var(--bg-inset); }
+.md-body details { margin: 0 0 14px; }
+.md-body summary { cursor: pointer; }
+
+/* ---------- highlight.js theme (adapts to light/dark) ---------- */
+.hljs { color: var(--text); background: transparent; }
+[data-theme="dark"] {
+  --hl-comment: #6a7384;
+  --hl-keyword: #ff7b72;
+  --hl-string: #7ee787;
+  --hl-number: #d2a8ff;
+  --hl-func: #79c0ff;
+  --hl-type: #ffa657;
+  --hl-attr: #79c0ff;
+  --hl-meta: #8b949e;
+  --hl-tag: #7ee787;
+}
+[data-theme="light"] {
+  --hl-comment: #8a8475;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a7d33;
+  --hl-number: #8250df;
+  --hl-func: #0550ae;
+  --hl-type: #953800;
+  --hl-attr: #0550ae;
+  --hl-meta: #6e7781;
+  --hl-tag: #116329;
+}
+.hljs-comment, .hljs-quote { color: var(--hl-comment); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-doctag { color: var(--hl-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-meta-string { color: var(--hl-string); }
+.hljs-number, .hljs-bullet { color: var(--hl-number); }
+.hljs-title, .hljs-title.function_, .hljs-section { color: var(--hl-func); }
+.hljs-type, .hljs-class .hljs-title, .hljs-built_in, .hljs-builtin-name { color: var(--hl-type); }
+.hljs-attr, .hljs-attribute, .hljs-variable, .hljs-template-variable, .hljs-property { color: var(--hl-attr); }
+.hljs-tag, .hljs-name, .hljs-selector-id, .hljs-selector-class { color: var(--hl-tag); }
+.hljs-meta, .hljs-symbol { color: var(--hl-meta); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 700; }
+.hljs-deletion { color: var(--danger); }

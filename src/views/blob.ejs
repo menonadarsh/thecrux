@@ -11,16 +11,26 @@
   <div class="blob-meta">
     <span class="blob-stat"><%= humanSize(blob.size) %></span>
     <% if (!blob.isBinary && !blob.tooLarge) { %>
-      <span class="blob-stat"><%= lines.length %> <%= lines.length === 1 ? "line" : "lines" %></span>
+      <span class="blob-stat"><%= lineCount %> <%= lineCount === 1 ? "line" : "lines" %></span>
     <% } %>
+    <% if (language) { %><span class="blob-lang"><%= language %></span><% } %>
     <% if (blob.isBinary) { %><span class="blob-stat blob-binary">binary</span><% } %>
+    <% if (markdownHtml) { %>
+      <div class="blob-toggle" role="group">
+        <button class="blob-tab is-active" type="button" data-blob-view="rendered">rendered</button>
+        <button class="blob-tab" type="button" data-blob-view="source">source</button>
+      </div>
+    <% } %>
     <a class="blob-raw" href="<%= rawUrl %>">raw</a>
   </div>
 
   <% if (blob.text !== null) { %>
-    <div class="codeview">
-      <pre class="gutter"><% lines.forEach(function (_l, i) { %><span class="lineno"><%= i + 1 %></span><% }); %></pre>
-      <pre class="codecol"><code><% lines.forEach(function (line) { %><span class="codeline"><%= line %></span><% }); %></code></pre>
+    <% if (markdownHtml) { %>
+      <div class="md-body" id="blob-rendered"><%- markdownHtml %></div>
+    <% } %>
+    <div class="codeview<%= markdownHtml ? ' is-hidden' : '' %>" id="blob-source">
+      <pre class="gutter"><% for (var i = 1; i <= lineCount; i++) { %><span class="lineno"><%= i %></span><% } %></pre>
+      <pre class="codecol"><code class="hljs"><%- highlightedHtml %></code></pre>
     </div>
   <% } else { %>
     <div class="blob-notshown">

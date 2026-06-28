@@ -9,6 +9,8 @@ import {
   objectType,
   readBlob,
 } from "../git/tree.js";
+import { highlightFile } from "../render/highlight.js";
+import { isMarkdown, renderMarkdown } from "../render/markdown.js";
 
 export const reposRouter = Router();
 
@@ -117,6 +119,7 @@ async function renderBrowse(
     headCommit(repo.name, ref),
   ]);
   const cloneUrl = `${req.protocol}://${req.get("host")}/${repo.name}.git`;
+  const readmeHtml = readme && isMarkdown(readme.name) ? renderMarkdown(readme.text) : null;
 
   res.render("browse", {
     repo,
@@ -125,6 +128,7 @@ async function renderBrowse(
     isRoot: sub === "",
     entries,
     readme,
+    readmeHtml,
     commit,
     cloneUrl,
     crumbs: breadcrumb(repo.name, ref, sub, false),
@@ -194,12 +198,29 @@ reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
       return;
     }
     const rawUrl = `/${enc(repo.name)}/raw/${enc(ref)}/${encPath(sub)}`;
+
+    let highlightedHtml: string | null = null;
+    let lineCount = 0;
+    let language: string | null = null;
+    let markdownHtml: string | null = null;
+    if (blob.text !== null) {
+      const body = blob.text.replace(/\n$/, "");
+      lineCount = body === "" ? 1 : body.split("\n").length;
+      const hl = highlightFile(body, sub);
+      highlightedHtml = hl.html;
+      language = hl.language;
+      if (isMarkdown(sub)) markdownHtml = renderMarkdown(blob.text);
+    }
+
     res.render("blob", {
       repo,
       ref,
       subpath: sub,
       blob,
-      lines: blob.text === null ? [] : blob.text.replace(/\n$/, "").split("\n"),
+      highlightedHtml,
+      lineCount,
+      language,
+      markdownHtml,
       rawUrl,
       crumbs: breadcrumb(repo.name, ref, sub, true),
     });

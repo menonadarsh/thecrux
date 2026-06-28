@@ -195,6 +195,22 @@
     });
   });
 
+  /* ---------------- Blob rendered/source toggle ---------------- */
+  (function () {
+    var tabs = document.querySelectorAll("[data-blob-view]");
+    if (!tabs.length) return;
+    var rendered = document.getElementById("blob-rendered");
+    var source = document.getElementById("blob-source");
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        var view = tab.getAttribute("data-blob-view");
+        tabs.forEach(function (t) { t.classList.toggle("is-active", t === tab); });
+        if (rendered) rendered.classList.toggle("is-hidden", view !== "rendered");
+        if (source) source.classList.toggle("is-hidden", view !== "source");
+      });
+    });
+  })();
+
   /* ---------------- Toolbar buttons ---------------- */
   document.querySelectorAll('[data-action="theme"]').forEach(function (b) {
     b.addEventListener("click", toggleTheme);

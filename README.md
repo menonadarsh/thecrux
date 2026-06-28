@@ -4,7 +4,7 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 
 ## Status
 
-**v0.4 — commit history**
+**v0.5 — markdown & syntax highlighting**
 
 - [x] Create bare git repositories from a web UI
 - [x] List repositories on the home page
@@ -13,7 +13,11 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 - [x] Smart-HTTP git clone/push over the web
 - [x] Browse files & directories (tree, file view, raw, README preview)
 - [x] Commit history — log, per-commit diffs, path-filtered history
-- [ ] Markdown rendering + syntax highlighting
+- [x] Markdown rendering (sanitized) + syntax highlighting (theme-aware)
+- [ ] Branches & tags (with a branch switcher)
+- [ ] Pull requests
+- [ ] Users & authentication
+- [ ] Issues
 - [ ] Branches & tags
 - [ ] Pull requests
 - [ ] Users & authentication

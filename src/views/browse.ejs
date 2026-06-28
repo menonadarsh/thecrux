@@ -45,7 +45,11 @@
 <% if (readme) { %>
   <section class="card readme">
     <div class="card-head"><span class="card-title"><%= readme.name %></span></div>
-    <pre class="readme-body"><code><%= readme.text %></code></pre>
+    <% if (readmeHtml) { %>
+      <div class="md-body"><%- readmeHtml %></div>
+    <% } else { %>
+      <pre class="readme-body"><code><%= readme.text %></code></pre>
+    <% } %>
   </section>
 <% } %>
 
