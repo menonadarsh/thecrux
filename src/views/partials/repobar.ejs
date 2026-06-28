@@ -1,0 +1,62 @@
+<%
+  var rb = locals.repobar;
+  var rbRepo = rb.repo, rbRef = rb.ref, rbActive = rb.active;
+  var rbSwitch = rb.switchView || null;
+  var rbSub = rb.subpath || "";
+  var rbBranches = rb.branches || [];
+  var rbTags = rb.tags || [];
+  var rbName = encodeURIComponent(rbRepo.name);
+  function refHref(r) {
+    return "/" + rbName + "/" + rbSwitch + "/" + encodeURIComponent(r) + (rbSub ? "/" + encodePath(rbSub) : "");
+  }
+%>
+<div class="repobar">
+  <% if (rbSwitch) { %>
+    <div class="refswitch" data-refswitch>
+      <button class="refswitch-btn" type="button" data-refswitch-toggle aria-haspopup="true">
+        <span class="refswitch-icon">⎇</span>
+        <span class="refswitch-current"><%= rbRef %></span>
+        <span class="refswitch-caret">▾</span>
+      </button>
+      <div class="refswitch-menu" data-refswitch-menu hidden>
+        <div class="refswitch-search">
+          <input type="text" class="refswitch-filter" placeholder="filter branches/tags…" data-refswitch-filter autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="refswitch-scroll">
+          <% if (rbBranches.length) { %>
+            <div class="refswitch-group">branches</div>
+            <ul class="refswitch-list">
+              <% rbBranches.forEach(function (b) { %>
+                <li data-refswitch-item="<%= b.toLowerCase() %>">
+                  <a href="<%= refHref(b) %>" class="refswitch-link <%= b === rbRef ? 'is-current' : '' %>">
+                    <span class="refswitch-dot">⎇</span><%= b %>
+                  </a>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+          <% if (rbTags.length) { %>
+            <div class="refswitch-group">tags</div>
+            <ul class="refswitch-list">
+              <% rbTags.forEach(function (t) { %>
+                <li data-refswitch-item="<%= t.toLowerCase() %>">
+                  <a href="<%= refHref(t) %>" class="refswitch-link <%= t === rbRef ? 'is-current' : '' %>">
+                    <span class="refswitch-dot">⌑</span><%= t %>
+                  </a>
+                </li>
+              <% }); %>
+            </ul>
+          <% } %>
+          <div class="refswitch-empty" data-refswitch-empty hidden>no matches</div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <nav class="repotabs">
+    <a class="repotab <%= rbActive === 'files' ? 'is-active' : '' %>" href="/<%= rbName %>/tree/<%= encodeURIComponent(rbRef) %>">files</a>
+    <a class="repotab <%= rbActive === 'commits' ? 'is-active' : '' %>" href="/<%= rbName %>/commits/<%= encodeURIComponent(rbRef) %>">commits</a>
+    <a class="repotab <%= rbActive === 'branches' ? 'is-active' : '' %>" href="/<%= rbName %>/branches">branches<% if (rb.branchCount != null) { %> <span class="repotab-count"><%= rb.branchCount %></span><% } %></a>
+    <a class="repotab <%= rbActive === 'tags' ? 'is-active' : '' %>" href="/<%= rbName %>/tags">tags<% if (rb.tagCount != null) { %> <span class="repotab-count"><%= rb.tagCount %></span><% } %></a>
+  </nav>
+</div>

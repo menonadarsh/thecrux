@@ -820,3 +820,124 @@ a.commit-subject { color: var(--text); }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 700; }
 .hljs-deletion { color: var(--danger); }
+
+/* ============================================================
+   Branches & tags (v0.6)
+   ============================================================ */
+
+.repobar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+/* ref switcher */
+.refswitch { position: relative; }
+.refswitch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+}
+.refswitch-btn:hover { border-color: var(--accent); }
+.refswitch-icon { color: var(--accent); }
+.refswitch-current { font-weight: 600; }
+.refswitch-caret { color: var(--muted); font-size: 10px; }
+
+.refswitch-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  width: 280px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.refswitch-search { padding: 8px; border-bottom: 1px solid var(--border); }
+.refswitch-filter {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.refswitch-filter:focus { outline: none; border-color: var(--accent); }
+.refswitch-scroll { max-height: 320px; overflow-y: auto; padding: 6px; }
+.refswitch-group {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+.refswitch-list { list-style: none; margin: 0 0 6px; padding: 0; }
+.refswitch-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.refswitch-link:hover { background: var(--bg-hover); text-decoration: none; }
+.refswitch-link.is-current { color: var(--accent); background: var(--accent-soft); }
+.refswitch-dot { color: var(--faint); width: 14px; text-align: center; }
+.refswitch-link.is-current .refswitch-dot { color: var(--accent); }
+.refswitch-empty { padding: 14px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* repo subnav tabs */
+.repotabs { display: flex; gap: 4px; }
+.repotab {
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 13px;
+}
+.repotab:hover { color: var(--text); background: var(--bg-hover); text-decoration: none; }
+.repotab.is-active { color: var(--text); border-color: var(--border); background: var(--bg-elev); font-weight: 600; }
+.repotab-count {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bg-inset);
+  color: var(--muted);
+  font-size: 11px;
+}
+.repotab.is-active .repotab-count { background: var(--accent-soft); color: var(--accent); }
+
+/* branch / tag lists */
+.reflist { list-style: none; margin: 0; padding: 0; }
+.refrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  margin-bottom: 8px;
+}
+.refrow:hover, .refrow.is-active { border-color: var(--accent); background: var(--bg-hover); }
+.refrow-glyph { color: var(--accent); flex: none; }
+.refrow-name { color: var(--text); font-weight: 600; flex: none; }
+.refrow-sub { color: var(--muted); font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.refrow-meta { display: flex; align-items: center; gap: 10px; flex: none; font-size: 12px; }
+.refrow-hash { color: var(--accent); background: var(--accent-soft); padding: 1px 7px; border-radius: 4px; }

@@ -211,6 +211,55 @@
     });
   })();
 
+  /* ---------------- Ref switcher dropdown ---------------- */
+  (function () {
+    var root = document.querySelector("[data-refswitch]");
+    if (!root) return;
+    var toggle = root.querySelector("[data-refswitch-toggle]");
+    var menu = root.querySelector("[data-refswitch-menu]");
+    var filter = root.querySelector("[data-refswitch-filter]");
+    var empty = root.querySelector("[data-refswitch-empty]");
+    var items = Array.prototype.slice.call(root.querySelectorAll("[data-refswitch-item]"));
+
+    function open() {
+      menu.hidden = false;
+      if (filter) { filter.value = ""; applyFilter(); filter.focus(); }
+    }
+    function close() { menu.hidden = true; }
+    function isOpen() { return !menu.hidden; }
+
+    function applyFilter() {
+      var q = (filter ? filter.value : "").trim().toLowerCase();
+      var groups = {};
+      var any = false;
+      items.forEach(function (li) {
+        var hay = li.getAttribute("data-refswitch-item") || "";
+        var show = !q || hay.indexOf(q) !== -1 || fuzzy(hay, q);
+        li.style.display = show ? "" : "none";
+        if (show) any = true;
+      });
+      // Hide group headers whose lists are now empty.
+      root.querySelectorAll(".refswitch-list").forEach(function (ul) {
+        var visible = Array.prototype.some.call(ul.children, function (c) { return c.style.display !== "none"; });
+        var header = ul.previousElementSibling;
+        if (header && header.classList.contains("refswitch-group")) header.style.display = visible ? "" : "none";
+      });
+      if (empty) empty.hidden = any;
+    }
+
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      isOpen() ? close() : open();
+    });
+    if (filter) filter.addEventListener("input", applyFilter);
+    document.addEventListener("click", function (e) {
+      if (isOpen() && !root.contains(e.target)) close();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (isOpen() && e.key === "Escape") { close(); toggle.focus(); }
+    });
+  })();
+
   /* ---------------- Toolbar buttons ---------------- */
   document.querySelectorAll('[data-action="theme"]').forEach(function (b) {
     b.addEventListener("click", toggleTheme);

@@ -5,6 +5,8 @@
   <span class="termline-cmd">git log<%= subpath ? " -- " + subpath : "" %></span>
 </section>
 
+<%- include("partials/repobar") %>
+
 <%- include("partials/crumbs") %>
 
 <% if (page.commits.length === 0) { %>

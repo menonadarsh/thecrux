@@ -1,0 +1,30 @@
+<%- include("partials/header", { title: "branches · " + repo.name, crumb: "~/repos/" + repo.name + "/branches" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">git branch</span>
+  <span class="termline-meta"><%= branches.length %> <%= branches.length === 1 ? "branch" : "branches" %></span>
+</section>
+
+<%- include("partials/repobar") %>
+
+<% if (branches.length === 0) { %>
+  <div class="blank"><p class="muted">No branches yet.</p></div>
+<% } else { %>
+  <ul class="reflist" role="list">
+    <% branches.forEach(function (b) { %>
+      <li class="refrow" data-nav-item data-name="<%= b.name.toLowerCase() %>">
+        <span class="refrow-glyph">⎇</span>
+        <a class="refrow-name" href="/<%= encodeURIComponent(repo.name) %>/tree/<%= encodeURIComponent(b.name) %>"><%= b.name %></a>
+        <% if (b.name === defaultBranch) { %><span class="tag tag-branch">default</span><% } %>
+        <span class="refrow-sub"><%= b.subject %></span>
+        <span class="refrow-meta">
+          <a class="refrow-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= b.shortHash %>"><%= b.shortHash %></a>
+          <% if (b.date) { %><span class="muted"><%= relativeTime(b.date) %></span><% } %>
+        </span>
+      </li>
+    <% }); %>
+  </ul>
+<% } %>
+
+<%- include("partials/footer") %>

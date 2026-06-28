@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { getCommit, listCommits } from "../git/history.js";
+import { listBranches, listRefNames, listTags } from "../git/refs.js";
 import { createRepo, getRepo, listRepos, RepoError, type RepoSummary } from "../git/repos.js";
 import {
   cleanSubpath,
@@ -114,9 +115,10 @@ async function renderBrowse(
     res.status(404).render("404", { name: `${repo.name}/${sub}` });
     return;
   }
-  const [readme, commit] = await Promise.all([
+  const [readme, commit, refNames] = await Promise.all([
     findReadme(repo.name, ref, sub),
     headCommit(repo.name, ref),
+    listRefNames(repo.name),
   ]);
   const cloneUrl = `${req.protocol}://${req.get("host")}/${repo.name}.git`;
   const readmeHtml = readme && isMarkdown(readme.name) ? renderMarkdown(readme.text) : null;
@@ -132,6 +134,17 @@ async function renderBrowse(
     commit,
     cloneUrl,
     crumbs: breadcrumb(repo.name, ref, sub, false),
+    repobar: {
+      repo,
+      ref,
+      active: "files",
+      switchView: "tree",
+      subpath: sub,
+      branches: refNames.branches,
+      tags: refNames.tags,
+      branchCount: refNames.branches.length,
+      tagCount: refNames.tags.length,
+    },
   });
 }
 
@@ -212,6 +225,7 @@ reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
       if (isMarkdown(sub)) markdownHtml = renderMarkdown(blob.text);
     }
 
+    const refNames = await listRefNames(repo.name);
     res.render("blob", {
       repo,
       ref,
@@ -223,6 +237,17 @@ reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
       markdownHtml,
       rawUrl,
       crumbs: breadcrumb(repo.name, ref, sub, true),
+      repobar: {
+        repo,
+        ref,
+        active: "files",
+        switchView: "blob",
+        subpath: sub,
+        branches: refNames.branches,
+        tags: refNames.tags,
+        branchCount: refNames.branches.length,
+        tagCount: refNames.tags.length,
+      },
     });
   } catch (err) {
     next(err);
@@ -246,6 +271,7 @@ reposRouter.get(["/:name/commits/:ref", "/:name/commits/:ref/*"], async (req, re
       return;
     }
     const pathQuery = sub ? `/${encPath(sub)}` : "";
+    const refNames = await listRefNames(repo.name);
     res.render("commits", {
       repo,
       ref,
@@ -253,6 +279,70 @@ reposRouter.get(["/:name/commits/:ref", "/:name/commits/:ref/*"], async (req, re
       page,
       basePath: `/${enc(repo.name)}/commits/${enc(ref)}${pathQuery}`,
       crumbs: breadcrumb(repo.name, ref, sub, false),
+      repobar: {
+        repo,
+        ref,
+        active: "commits",
+        switchView: "commits",
+        subpath: sub,
+        branches: refNames.branches,
+        tags: refNames.tags,
+        branchCount: refNames.branches.length,
+        tagCount: refNames.tags.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Branches overview.
+reposRouter.get("/:name/branches", async (req, res, next) => {
+  try {
+    const repo = await getRepo(req.params.name);
+    if (!repo) {
+      res.status(404).render("404", { name: req.params.name });
+      return;
+    }
+    const branches = (await listBranches(repo.name)) ?? [];
+    const tagNames = (await listRefNames(repo.name)).tags;
+    res.render("branches", {
+      repo,
+      branches,
+      defaultBranch: repo.defaultBranch,
+      repobar: {
+        repo,
+        ref: repo.defaultBranch ?? "main",
+        active: "branches",
+        branchCount: branches.length,
+        tagCount: tagNames.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Tags overview.
+reposRouter.get("/:name/tags", async (req, res, next) => {
+  try {
+    const repo = await getRepo(req.params.name);
+    if (!repo) {
+      res.status(404).render("404", { name: req.params.name });
+      return;
+    }
+    const tags = (await listTags(repo.name)) ?? [];
+    const branchNames = (await listRefNames(repo.name)).branches;
+    res.render("tags", {
+      repo,
+      tags,
+      repobar: {
+        repo,
+        ref: repo.defaultBranch ?? "main",
+        active: "tags",
+        branchCount: branchNames.length,
+        tagCount: tags.length,
+      },
     });
   } catch (err) {
     next(err);
