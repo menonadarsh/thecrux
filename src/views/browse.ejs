@@ -1,0 +1,61 @@
+<%- include("partials/header", { title: repo.name + (subpath ? "/" + subpath : ""), crumb: "~/repos/" + repo.name + (subpath ? "/" + subpath : "") }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd"><%= isRoot ? "cd " + repo.name : "ls " + repo.name + "/" + subpath %></span>
+</section>
+
+<% if (isRoot && repo.description) { %>
+  <p class="repo-tagline"><%= repo.description %></p>
+<% } %>
+
+<%- include("partials/crumbs") %>
+
+<% if (commit) { %>
+  <div class="commitbar">
+    <span class="commit-hash"><%= commit.shortHash %></span>
+    <span class="commit-subject"><%= commit.subject %></span>
+    <span class="commit-meta"><%= commit.author %> · <%= relativeTime(commit.date) %></span>
+  </div>
+<% } %>
+
+<div class="card filetree">
+  <ul class="tree" role="list">
+    <% if (subpath) { %>
+      <li class="tree-row tree-up">
+        <a class="tree-hit" href="<%= crumbs.length > 1 && crumbs[crumbs.length - 2].href ? crumbs[crumbs.length - 2].href : '/' + encodeURIComponent(repo.name) + '/tree/' + encodeURIComponent(ref) %>">
+          <span class="tree-glyph">⤴</span>
+          <span class="tree-name">..</span>
+        </a>
+      </li>
+    <% } %>
+    <% entries.forEach(function (e) { %>
+      <li class="tree-row" data-nav-item data-name="<%= e.name.toLowerCase() %>">
+        <a class="tree-hit" href="/<%= encodeURIComponent(repo.name) %>/<%= e.type === 'tree' ? 'tree' : 'blob' %>/<%= encodeURIComponent(ref) %>/<%= encodePath(e.path) %>">
+          <span class="tree-glyph <%= e.type %>"><%= e.type === 'tree' ? '▸' : '·' %></span>
+          <span class="tree-name <%= e.type %>"><%= e.name %><%= e.type === 'tree' ? '/' : '' %></span>
+          <span class="tree-size"><%= e.type === 'blob' ? humanSize(e.size) : '' %></span>
+        </a>
+      </li>
+    <% }); %>
+  </ul>
+</div>
+
+<% if (readme) { %>
+  <section class="card readme">
+    <div class="card-head"><span class="card-title"><%= readme.name %></span></div>
+    <pre class="readme-body"><code><%= readme.text %></code></pre>
+  </section>
+<% } %>
+
+<% if (isRoot) { %>
+  <section class="card">
+    <div class="card-head"><span class="card-title">clone</span></div>
+    <div class="copy-row" data-copy="<%= cloneUrl %>">
+      <code class="copy-text">git clone <%= cloneUrl %></code>
+      <button class="copy-btn" type="button" title="Copy">copy</button>
+    </div>
+  </section>
+<% } %>
+
+<%- include("partials/footer") %>

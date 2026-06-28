@@ -1,0 +1,13 @@
+<nav class="crumbs">
+  <a class="crumb-ref" href="/<%= encodeURIComponent(repo.name) %>/tree/<%= encodeURIComponent(ref) %>">
+    <span class="tag tag-branch"><%= ref %></span>
+  </a>
+  <% crumbs.forEach(function (c, i) { %>
+    <% if (i > 0) { %><span class="crumb-sep">/</span><% } %>
+    <% if (c.href) { %>
+      <a class="crumb" href="<%= c.href %>"><%= c.label %></a>
+    <% } else { %>
+      <span class="crumb crumb-current"><%= c.label %></span>
+    <% } %>
+  <% }); %>
+</nav>

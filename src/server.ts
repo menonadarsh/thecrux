@@ -4,6 +4,7 @@ import { config, ROOT } from "./config.js";
 import { gitHttpRouter } from "./git/http.js";
 import { ensureReposDir } from "./git/repos.js";
 import { reposRouter } from "./routes/repos.js";
+import { encodePath, humanSize, relativeTime } from "./util/format.js";
 
 const app = express();
 
@@ -18,9 +19,12 @@ app.use("/", gitHttpRouter);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(ROOT, "public")));
 
-// Expose app metadata to all views.
+// Expose app metadata and view helpers to all views.
 app.use((_req, res, next) => {
   res.locals.appName = config.appName;
+  res.locals.humanSize = humanSize;
+  res.locals.relativeTime = relativeTime;
+  res.locals.encodePath = encodePath;
   next();
 });
 

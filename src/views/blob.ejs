@@ -1,0 +1,37 @@
+<%- include("partials/header", { title: subpath, crumb: "~/repos/" + repo.name + "/" + subpath }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">cat <%= subpath %></span>
+</section>
+
+<%- include("partials/crumbs") %>
+
+<div class="card blobview">
+  <div class="blob-meta">
+    <span class="blob-stat"><%= humanSize(blob.size) %></span>
+    <% if (!blob.isBinary && !blob.tooLarge) { %>
+      <span class="blob-stat"><%= lines.length %> <%= lines.length === 1 ? "line" : "lines" %></span>
+    <% } %>
+    <% if (blob.isBinary) { %><span class="blob-stat blob-binary">binary</span><% } %>
+    <a class="blob-raw" href="<%= rawUrl %>">raw</a>
+  </div>
+
+  <% if (blob.text !== null) { %>
+    <div class="codeview">
+      <pre class="gutter"><% lines.forEach(function (_l, i) { %><span class="lineno"><%= i + 1 %></span><% }); %></pre>
+      <pre class="codecol"><code><% lines.forEach(function (line) { %><span class="codeline"><%= line %></span><% }); %></code></pre>
+    </div>
+  <% } else { %>
+    <div class="blob-notshown">
+      <% if (blob.isBinary) { %>
+        <p>Binary file — not shown.</p>
+      <% } else { %>
+        <p>File is too large to display inline (<%= humanSize(blob.size) %>).</p>
+      <% } %>
+      <a class="kbtn" href="<%= rawUrl %>">view raw</a>
+    </div>
+  <% } %>
+</div>
+
+<%- include("partials/footer") %>

@@ -1,8 +1,50 @@
-import { Router } from "express";
-import { config } from "../config.js";
-import { createRepo, getRepo, listRepos, RepoError } from "../git/repos.js";
+import { Router, type Request, type Response } from "express";
+import { createRepo, getRepo, listRepos, RepoError, type RepoSummary } from "../git/repos.js";
+import {
+  cleanSubpath,
+  findReadme,
+  headCommit,
+  listDirectory,
+  objectType,
+  readBlob,
+} from "../git/tree.js";
 
 export const reposRouter = Router();
+
+const enc = encodeURIComponent;
+
+/** Encode a slash-separated path, preserving the separators. */
+function encPath(p: string): string {
+  return cleanSubpath(p)
+    .split("/")
+    .filter(Boolean)
+    .map(enc)
+    .join("/");
+}
+
+interface Crumb {
+  label: string;
+  href: string | null;
+}
+
+/** Build breadcrumb segments for a path within a repo at a ref. */
+function breadcrumb(repoName: string, ref: string, subpath: string, leafIsBlob: boolean): Crumb[] {
+  const parts = cleanSubpath(subpath).split("/").filter(Boolean);
+  const crumbs: Crumb[] = [
+    { label: repoName, href: parts.length ? `/${enc(repoName)}/tree/${enc(ref)}` : null },
+  ];
+  let acc = "";
+  parts.forEach((part, i) => {
+    acc = acc ? `${acc}/${part}` : part;
+    const isLast = i === parts.length - 1;
+    const kind = isLast && leafIsBlob ? "blob" : "tree";
+    crumbs.push({
+      label: part,
+      href: isLast ? null : `/${enc(repoName)}/${kind}/${enc(ref)}/${encPath(acc)}`,
+    });
+  });
+  return crumbs;
+}
 
 // JSON feed for the command palette / client-side search.
 reposRouter.get("/api/repos.json", async (_req, res, next) => {
@@ -42,7 +84,7 @@ reposRouter.post("/new", async (req, res, next) => {
   const description = String(req.body.description ?? "");
   try {
     const repo = await createRepo(name, description);
-    res.redirect(`/${encodeURIComponent(repo.name)}`);
+    res.redirect(`/${enc(repo.name)}`);
   } catch (err) {
     if (err instanceof RepoError) {
       res.status(err.status).render("new", {
@@ -55,7 +97,40 @@ reposRouter.post("/new", async (req, res, next) => {
   }
 });
 
-// Repository detail.
+/** Render a directory listing (used at repo root and any subdirectory). */
+async function renderBrowse(
+  req: Request,
+  res: Response,
+  repo: RepoSummary,
+  ref: string,
+  subpath: string,
+): Promise<void> {
+  const sub = cleanSubpath(subpath);
+  const entries = await listDirectory(repo.name, ref, sub);
+  if (!entries) {
+    res.status(404).render("404", { name: `${repo.name}/${sub}` });
+    return;
+  }
+  const [readme, commit] = await Promise.all([
+    findReadme(repo.name, ref, sub),
+    headCommit(repo.name, ref),
+  ]);
+  const cloneUrl = `${req.protocol}://${req.get("host")}/${repo.name}.git`;
+
+  res.render("browse", {
+    repo,
+    ref,
+    subpath: sub,
+    isRoot: sub === "",
+    entries,
+    readme,
+    commit,
+    cloneUrl,
+    crumbs: breadcrumb(repo.name, ref, sub, false),
+  });
+}
+
+// Repository root.
 reposRouter.get("/:name", async (req, res, next) => {
   try {
     const repo = await getRepo(req.params.name);
@@ -64,7 +139,95 @@ reposRouter.get("/:name", async (req, res, next) => {
       return;
     }
     const cloneUrl = `${req.protocol}://${req.get("host")}/${repo.name}.git`;
-    res.render("repo", { repo, cloneUrl, appName: config.appName });
+    if (repo.empty || !repo.defaultBranch) {
+      res.render("repo", { repo, cloneUrl });
+      return;
+    }
+    await renderBrowse(req, res, repo, repo.defaultBranch, "");
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Browse a directory at a ref.
+reposRouter.get(["/:name/tree/:ref", "/:name/tree/:ref/*"], async (req, res, next) => {
+  try {
+    const repo = await getRepo(req.params.name);
+    if (!repo) {
+      res.status(404).render("404", { name: req.params.name });
+      return;
+    }
+    const ref = String(req.params.ref);
+    const sub = String((req.params as Record<string, string>)[0] ?? "");
+    // If the target is actually a file, redirect to the blob view.
+    if (sub && (await objectType(repo.name, ref, sub)) === "blob") {
+      res.redirect(`/${enc(repo.name)}/blob/${enc(ref)}/${encPath(sub)}`);
+      return;
+    }
+    await renderBrowse(req, res, repo, ref, sub);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// View a file at a ref.
+reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
+  try {
+    const repo = await getRepo(req.params.name);
+    if (!repo) {
+      res.status(404).render("404", { name: req.params.name });
+      return;
+    }
+    const ref = String(req.params.ref);
+    const sub = String((req.params as Record<string, string>)[0] ?? "");
+
+    // If the target is a directory, redirect to the tree view.
+    if ((await objectType(repo.name, ref, sub)) === "tree") {
+      res.redirect(`/${enc(repo.name)}/tree/${enc(ref)}/${encPath(sub)}`);
+      return;
+    }
+
+    const blob = await readBlob(repo.name, ref, sub);
+    if (!blob) {
+      res.status(404).render("404", { name: `${repo.name}/${sub}` });
+      return;
+    }
+    const rawUrl = `/${enc(repo.name)}/raw/${enc(ref)}/${encPath(sub)}`;
+    res.render("blob", {
+      repo,
+      ref,
+      subpath: sub,
+      blob,
+      lines: blob.text === null ? [] : blob.text.replace(/\n$/, "").split("\n"),
+      rawUrl,
+      crumbs: breadcrumb(repo.name, ref, sub, true),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Serve raw file bytes.
+reposRouter.get("/:name/raw/:ref/*", async (req, res, next) => {
+  try {
+    const repo = await getRepo(req.params.name);
+    if (!repo) {
+      res.status(404).send("repository not found");
+      return;
+    }
+    const ref = String(req.params.ref);
+    const sub = String((req.params as Record<string, string>)[0] ?? "");
+    const blob = await readBlob(repo.name, ref, sub);
+    if (!blob) {
+      res.status(404).send("not found");
+      return;
+    }
+    res.setHeader(
+      "Content-Type",
+      blob.isBinary ? "application/octet-stream" : "text/plain; charset=utf-8",
+    );
+    res.setHeader("Cache-Control", "no-cache");
+    res.send(blob.buffer);
   } catch (err) {
     next(err);
   }

@@ -4,14 +4,14 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 
 ## Status
 
-**v0.2 — real git transport**
+**v0.3 — file browsing**
 
 - [x] Create bare git repositories from a web UI
 - [x] List repositories on the home page
 - [x] Repository detail page with clone instructions
 - [x] Keyboard-first UI (command palette, vim nav, light/dark themes)
 - [x] Smart-HTTP git clone/push over the web
-- [ ] Browse files & directories
+- [x] Browse files & directories (tree, file view, raw, README preview)
 - [ ] View commit history
 - [ ] Branches & tags
 - [ ] Pull requests
