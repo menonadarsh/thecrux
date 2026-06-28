@@ -4,18 +4,27 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 
 ## Status
 
-**v0.1 — foundation**
+**v0.2 — real git transport**
 
 - [x] Create bare git repositories from a web UI
 - [x] List repositories on the home page
 - [x] Repository detail page with clone instructions
-- [ ] Smart-HTTP git clone/push over the web
+- [x] Keyboard-first UI (command palette, vim nav, light/dark themes)
+- [x] Smart-HTTP git clone/push over the web
 - [ ] Browse files & directories
 - [ ] View commit history
 - [ ] Branches & tags
 - [ ] Pull requests
 - [ ] Users & authentication
 - [ ] Issues
+
+You can now actually use thecrux as a git remote:
+
+```bash
+git remote add origin http://localhost:3000/my-project.git
+git push -u origin main
+git clone http://localhost:3000/my-project.git
+```
 
 ## Tech stack
 
