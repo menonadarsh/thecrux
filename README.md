@@ -4,7 +4,7 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 
 ## Status
 
-**v0.6 — branches & tags**
+**v0.7 — users & authentication**
 
 - [x] Create bare git repositories from a web UI
 - [x] List repositories on the home page
@@ -15,9 +15,25 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 - [x] Commit history — log, per-commit diffs, path-filtered history
 - [x] Markdown rendering (sanitized) + syntax highlighting (theme-aware)
 - [x] Branches & tags — overview pages, ref switcher, repo subnav
+- [x] Users & authentication — accounts, sessions, repo ownership, push auth
 - [ ] Pull requests
-- [ ] Users & authentication
 - [ ] Issues
+
+### Authentication
+
+- Register at `/register`, sign in at `/login`. Passwords are hashed with
+  scrypt; sessions are signed cookies.
+- Creating a repository requires being signed in; the creator is recorded as
+  the repo **owner**.
+- **`git push` requires authentication** (HTTP Basic, your crux username +
+  password). Cloning is anonymous.
+
+```bash
+git push http://<username>@localhost:3000/my-project.git main
+```
+
+Extra config: `CRUX_DATA_DIR` (data location), `CRUX_SECRET` (session signing
+key; auto-generated and persisted if unset).
 - [ ] Branches & tags
 - [ ] Pull requests
 - [ ] Users & authentication

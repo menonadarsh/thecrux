@@ -1,0 +1,41 @@
+<%- include("partials/header", { title: "create account", crumb: "~/register" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">auth register</span>
+</section>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<form class="form" method="post" action="/register">
+  <input type="hidden" name="next" value="<%= next %>" />
+  <label class="field">
+    <span class="field-label">username</span>
+    <div class="field-mono">
+      <span class="field-prefix">@</span>
+      <input type="text" name="username" value="<%= values.username %>" autocomplete="username" autocapitalize="off" spellcheck="false" autofocus required />
+    </div>
+    <span class="field-hint">2–39 chars: letters, numbers, <code>.</code> <code>_</code> <code>-</code></span>
+  </label>
+  <label class="field">
+    <span class="field-label">display name <span class="muted">(optional)</span></span>
+    <div class="field-mono">
+      <input type="text" name="displayName" value="<%= values.displayName %>" autocomplete="name" />
+    </div>
+  </label>
+  <label class="field">
+    <span class="field-label">password</span>
+    <div class="field-mono">
+      <input type="password" name="password" autocomplete="new-password" required />
+    </div>
+    <span class="field-hint">at least 8 characters.</span>
+  </label>
+  <div class="form-actions">
+    <button class="kbtn primary" type="submit">create account</button>
+    <a class="kbtn" href="/login">sign in instead</a>
+  </div>
+</form>
+
+<%- include("partials/footer") %>

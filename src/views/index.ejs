@@ -32,6 +32,9 @@
           <span class="repo-body">
             <span class="repo-line">
               <span class="repo-name"><%= repo.name %></span>
+              <% if (repo.owner) { %>
+                <span class="repo-owner"><span class="repo-owner-at">@</span><%= repo.owner %></span>
+              <% } %>
               <% if (repo.empty) { %>
                 <span class="tag tag-empty">empty</span>
               <% } else { %>

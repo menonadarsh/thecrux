@@ -4,10 +4,24 @@ import path from "node:path";
 import { promisify } from "node:util";
 import zlib from "node:zlib";
 import { Router, type Request, type Response } from "express";
+import { checkBasicAuth } from "../auth/middleware.js";
 import { config } from "../config.js";
 import { normalizeRepoName } from "./repos.js";
 
 const execFileAsync = promisify(execFile);
+
+/**
+ * Pushing (receive-pack) requires authentication. Returns true if the request
+ * is allowed to proceed; otherwise it sends a 401 and returns false. Cloning
+ * (upload-pack) is left anonymous.
+ */
+function authorizePush(req: Request, res: Response): boolean {
+  const user = checkBasicAuth(req.headers.authorization);
+  if (user) return true;
+  res.setHeader("WWW-Authenticate", 'Basic realm="thecrux"');
+  res.status(401).send("Authentication required to push.");
+  return false;
+}
 
 /**
  * Git Smart-HTTP transport.
@@ -87,6 +101,9 @@ gitHttpRouter.get("/:repo/info/refs", (req: Request, res: Response) => {
     res.status(400).send("thecrux only supports the git smart HTTP protocol");
     return;
   }
+  // Pushing must be authenticated, including this advertisement request.
+  if (service === "git-receive-pack" && !authorizePush(req, res)) return;
+
   const dir = resolveRepoDir(String(req.params.repo));
   if (!dir) {
     res.status(404).send("repository not found");
@@ -113,6 +130,8 @@ gitHttpRouter.get("/:repo/info/refs", (req: Request, res: Response) => {
 /** Build a POST handler that streams a request through a git RPC process. */
 function rpcHandler(service: string) {
   return (req: Request, res: Response) => {
+    if (service === "git-receive-pack" && !authorizePush(req, res)) return;
+
     const dir = resolveRepoDir(String(req.params.repo));
     if (!dir) {
       res.status(404).send("repository not found");

@@ -5,8 +5,11 @@
   <span class="termline-cmd"><%= isRoot ? "cd " + repo.name : "ls " + repo.name + "/" + subpath %></span>
 </section>
 
-<% if (isRoot && repo.description) { %>
-  <p class="repo-tagline"><%= repo.description %></p>
+<% if (isRoot && (repo.description || repo.owner)) { %>
+  <p class="repo-tagline">
+    <% if (repo.owner) { %><span class="repo-owner"><span class="repo-owner-at">@</span><%= repo.owner %></span><% } %>
+    <% if (repo.description) { %><%= repo.description %><% } %>
+  </p>
 <% } %>
 
 <%- include("partials/repobar") %>

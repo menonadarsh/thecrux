@@ -9,6 +9,8 @@ const execFileAsync = promisify(execFile);
 export interface RepoSummary {
   name: string;
   description: string;
+  /** Username of the account that created the repo, or null (legacy/anon). */
+  owner: string | null;
   /** Whether the repo has any commits yet. */
   empty: boolean;
   /** Default branch name, or null if empty. */
@@ -63,8 +65,12 @@ export async function ensureReposDir(): Promise<void> {
   await fs.mkdir(config.reposDir, { recursive: true });
 }
 
-/** Create a new bare repository. */
-export async function createRepo(rawName: string, description = ""): Promise<RepoSummary> {
+/** Create a new bare repository, optionally owned by a user. */
+export async function createRepo(
+  rawName: string,
+  description = "",
+  owner: string | null = null,
+): Promise<RepoSummary> {
   const name = normalizeRepoName(rawName);
   const dir = repoPath(name);
 
@@ -79,10 +85,23 @@ export async function createRepo(rawName: string, description = ""): Promise<Rep
   if (description.trim()) {
     await fs.writeFile(path.join(dir, "description"), `${description.trim()}\n`, "utf8");
   }
+  if (owner) {
+    await fs.writeFile(path.join(dir, "crux-owner"), `${owner}\n`, "utf8");
+  }
   // Allow dumb-HTTP fetch as a fallback and keep server info fresh.
   await git(dir, ["update-server-info"]).catch(() => {});
 
   return (await getRepo(name))!;
+}
+
+/** Read the recorded owner username for a repo, if any. */
+async function readOwner(dir: string): Promise<string | null> {
+  try {
+    const text = (await fs.readFile(path.join(dir, "crux-owner"), "utf8")).trim();
+    return text || null;
+  } catch {
+    return null;
+  }
 }
 
 /** Read the description file for a repo, if meaningful. */
@@ -130,13 +149,14 @@ export async function getRepo(name: string): Promise<RepoSummary | null> {
   const dir = repoPath(cleanName);
   if (!(await exists(dir))) return null;
 
-  const [{ defaultBranch, empty }, description, stat] = await Promise.all([
+  const [{ defaultBranch, empty }, description, owner, stat] = await Promise.all([
     readHead(dir),
     readDescription(dir),
+    readOwner(dir),
     fs.stat(dir),
   ]);
 
-  return { name: cleanName, description, empty, defaultBranch, updatedAt: stat.mtime };
+  return { name: cleanName, description, owner, empty, defaultBranch, updatedAt: stat.mtime };
 }
 
 /** List all hosted repositories, most recently updated first. */

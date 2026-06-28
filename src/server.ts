@@ -1,8 +1,10 @@
 import express from "express";
 import path from "node:path";
+import { loadUser } from "./auth/middleware.js";
 import { config, ROOT } from "./config.js";
 import { gitHttpRouter } from "./git/http.js";
 import { ensureReposDir } from "./git/repos.js";
+import { authRouter } from "./routes/auth.js";
 import { reposRouter } from "./routes/repos.js";
 import { encodePath, humanSize, relativeTime } from "./util/format.js";
 
@@ -19,6 +21,9 @@ app.use("/", gitHttpRouter);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(ROOT, "public")));
 
+// Load the current user (from the session cookie) for every web request.
+app.use(loadUser);
+
 // Expose app metadata and view helpers to all views.
 app.use((_req, res, next) => {
   res.locals.appName = config.appName;
@@ -28,6 +33,7 @@ app.use((_req, res, next) => {
   next();
 });
 
+app.use("/", authRouter);
 app.use("/", reposRouter);
 
 // 404 fallback.

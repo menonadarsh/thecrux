@@ -211,6 +211,24 @@
     });
   })();
 
+  /* ---------------- User menu dropdown ---------------- */
+  (function () {
+    var root = document.querySelector("[data-usermenu]");
+    if (!root) return;
+    var toggle = root.querySelector("[data-usermenu-toggle]");
+    var pop = root.querySelector("[data-usermenu-pop]");
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      pop.hidden = !pop.hidden;
+    });
+    document.addEventListener("click", function (e) {
+      if (!pop.hidden && !root.contains(e.target)) pop.hidden = true;
+    });
+    document.addEventListener("keydown", function (e) {
+      if (!pop.hidden && e.key === "Escape") pop.hidden = true;
+    });
+  })();
+
   /* ---------------- Ref switcher dropdown ---------------- */
   (function () {
     var root = document.querySelector("[data-refswitch]");

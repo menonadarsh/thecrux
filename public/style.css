@@ -941,3 +941,47 @@ a.commit-subject { color: var(--text); }
 .refrow-sub { color: var(--muted); font-size: 13px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .refrow-meta { display: flex; align-items: center; gap: 10px; flex: none; font-size: 12px; }
 .refrow-hash { color: var(--accent); background: var(--accent-soft); padding: 1px 7px; border-radius: 4px; }
+
+/* ============================================================
+   Auth — user menu (v0.7)
+   ============================================================ */
+.usermenu { position: relative; }
+.user-glyph { color: var(--accent); font-size: 10px; }
+.usermenu-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 180px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 6px;
+}
+.usermenu-name {
+  display: block;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.usermenu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+}
+.usermenu-item:hover { background: var(--bg-hover); color: var(--accent); }
+
+/* owner byline */
+.repo-owner { color: var(--muted); font-size: 12px; }
+.repo-owner-at { color: var(--accent); }

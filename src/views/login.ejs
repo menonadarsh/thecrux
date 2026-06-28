@@ -1,0 +1,32 @@
+<%- include("partials/header", { title: "sign in", crumb: "~/login" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">auth login</span>
+</section>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<form class="form" method="post" action="/login">
+  <input type="hidden" name="next" value="<%= next %>" />
+  <label class="field">
+    <span class="field-label">username</span>
+    <div class="field-mono">
+      <input type="text" name="username" value="<%= values.username %>" autocomplete="username" autocapitalize="off" spellcheck="false" autofocus required />
+    </div>
+  </label>
+  <label class="field">
+    <span class="field-label">password</span>
+    <div class="field-mono">
+      <input type="password" name="password" autocomplete="current-password" required />
+    </div>
+  </label>
+  <div class="form-actions">
+    <button class="kbtn primary" type="submit">sign in</button>
+    <a class="kbtn" href="/register">create account</a>
+  </div>
+</form>
+
+<%- include("partials/footer") %>

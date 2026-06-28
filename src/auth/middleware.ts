@@ -1,0 +1,56 @@
+import type { NextFunction, Request, Response } from "express";
+import { SESSION_COOKIE, readSession } from "./session.js";
+import { authenticate, getUser, type User } from "./users.js";
+
+declare module "express-serve-static-core" {
+  interface Request {
+    currentUser?: User | null;
+  }
+}
+
+/** Parse the Cookie header into a map. */
+function parseCookies(header: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!header) return out;
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    const key = part.slice(0, eq).trim();
+    const val = part.slice(eq + 1).trim();
+    if (key) out[key] = decodeURIComponent(val);
+  }
+  return out;
+}
+
+/** Populate req.currentUser / res.locals.currentUser from the session cookie. */
+export function loadUser(req: Request, res: Response, next: NextFunction): void {
+  const cookies = parseCookies(req.headers.cookie);
+  const username = readSession(cookies[SESSION_COOKIE]);
+  const user = username ? getUser(username) : null;
+  req.currentUser = user;
+  res.locals.currentUser = user;
+  next();
+}
+
+/** Gate a web route behind login, redirecting to /login with a return path. */
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  if (req.currentUser) {
+    next();
+    return;
+  }
+  res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`);
+}
+
+/** Validate HTTP Basic credentials (used by the git transport). */
+export function checkBasicAuth(header: string | undefined): User | null {
+  if (!header || !header.startsWith("Basic ")) return null;
+  let decoded: string;
+  try {
+    decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+  } catch {
+    return null;
+  }
+  const sep = decoded.indexOf(":");
+  if (sep < 0) return null;
+  return authenticate(decoded.slice(0, sep), decoded.slice(sep + 1));
+}

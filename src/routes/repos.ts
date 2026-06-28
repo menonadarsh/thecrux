@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { requireAuth } from "../auth/middleware.js";
 import { getCommit, listCommits } from "../git/history.js";
 import { listBranches, listRefNames, listTags } from "../git/refs.js";
 import { createRepo, getRepo, listRepos, RepoError, type RepoSummary } from "../git/repos.js";
@@ -78,16 +79,16 @@ reposRouter.get("/", async (_req, res, next) => {
 });
 
 // New repository form.
-reposRouter.get("/new", (_req, res) => {
+reposRouter.get("/new", requireAuth, (_req, res) => {
   res.render("new", { error: null, values: { name: "", description: "" } });
 });
 
 // Create a repository.
-reposRouter.post("/new", async (req, res, next) => {
+reposRouter.post("/new", requireAuth, async (req, res, next) => {
   const name = String(req.body.name ?? "");
   const description = String(req.body.description ?? "");
   try {
-    const repo = await createRepo(name, description);
+    const repo = await createRepo(name, description, req.currentUser?.username ?? null);
     res.redirect(`/${enc(repo.name)}`);
   } catch (err) {
     if (err instanceof RepoError) {

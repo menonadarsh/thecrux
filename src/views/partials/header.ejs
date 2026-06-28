@@ -34,6 +34,21 @@
           <span class="theme-icon theme-icon-dark">◑</span>
           <span class="theme-icon theme-icon-light">◐</span>
         </button>
+        <% if (locals.currentUser) { %>
+          <div class="usermenu" data-usermenu>
+            <button class="kbtn" type="button" data-usermenu-toggle>
+              <span class="user-glyph">●</span> <%= currentUser.username %>
+            </button>
+            <div class="usermenu-pop" data-usermenu-pop hidden>
+              <span class="usermenu-name"><%= currentUser.displayName %></span>
+              <form method="post" action="/logout">
+                <button class="usermenu-item" type="submit">sign out</button>
+              </form>
+            </div>
+          </div>
+        <% } else { %>
+          <a class="kbtn" href="/login">sign in</a>
+        <% } %>
       </div>
     </header>
     <main class="content">

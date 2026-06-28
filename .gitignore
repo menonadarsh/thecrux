@@ -3,5 +3,6 @@ dist/
 *.log
 .DS_Store
 
-# Hosted git repositories live here; do not commit user data.
-data/repos/
+# Hosted repos, user accounts (password hashes) and the session secret all
+# live under data/ — never commit any of it.
+data/
