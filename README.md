@@ -1,0 +1,55 @@
+# thecrux
+
+A self-hosted code hosting solution — like GitHub — built incrementally.
+
+## Status
+
+**v0.1 — foundation**
+
+- [x] Create bare git repositories from a web UI
+- [x] List repositories on the home page
+- [x] Repository detail page with clone instructions
+- [ ] Smart-HTTP git clone/push over the web
+- [ ] Browse files & directories
+- [ ] View commit history
+- [ ] Branches & tags
+- [ ] Pull requests
+- [ ] Users & authentication
+- [ ] Issues
+
+## Tech stack
+
+- Node.js + TypeScript
+- Express + EJS (server-rendered UI)
+- Real **bare git repositories** stored on disk (`data/repos/`)
+
+## Getting started
+
+```bash
+npm install
+npm run dev      # start with auto-reload at http://127.0.0.1:3000
+```
+
+Production build:
+
+```bash
+npm run build
+npm start
+```
+
+## Configuration
+
+Environment variables:
+
+| Variable          | Default            | Description                          |
+| ----------------- | ------------------ | ------------------------------------ |
+| `PORT`            | `3000`             | HTTP port                            |
+| `HOST`            | `127.0.0.1`        | Bind address                         |
+| `CRUX_REPOS_DIR`  | `./data/repos`     | Where bare repositories are stored   |
+
+## How it works
+
+Each repository is a real bare git repo (`<name>.git`) created with
+`git init --bare`. This keeps thecrux interoperable with standard git from
+day one — future increments will serve these repos over the smart-HTTP
+protocol so you can `git clone` and `git push` directly.

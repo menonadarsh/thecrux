@@ -1,0 +1,42 @@
+<%- include("partials/header", { title: repo.name }) %>
+
+<div class="page-head repo-head">
+  <h1><a href="/">repositories</a> / <strong><%= repo.name %></strong></h1>
+  <% if (repo.empty) { %>
+    <span class="badge">empty</span>
+  <% } else { %>
+    <span class="badge badge-branch"><%= repo.defaultBranch %></span>
+  <% } %>
+</div>
+
+<% if (repo.description) { %>
+  <p class="repo-desc-lg"><%= repo.description %></p>
+<% } %>
+
+<section class="panel">
+  <h2>Clone</h2>
+  <p class="muted">Use git over HTTP:</p>
+  <pre class="clone-box"><code>git clone <%= cloneUrl %></code></pre>
+</section>
+
+<% if (repo.empty) { %>
+  <section class="panel">
+    <h2>Quick setup</h2>
+    <p class="muted">This repository is empty. Push an existing project:</p>
+<pre class="clone-box"><code>cd my-project
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin <%= cloneUrl %>
+git push -u origin main</code></pre>
+  </section>
+<% } else { %>
+  <section class="panel">
+    <h2>Default branch</h2>
+    <p><span class="badge badge-branch"><%= repo.defaultBranch %></span></p>
+    <p class="muted">File browsing and commit history are coming in the next increment.</p>
+  </section>
+<% } %>
+
+<%- include("partials/footer") %>

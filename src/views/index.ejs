@@ -1,0 +1,36 @@
+<%- include("partials/header", { title: "Repositories" }) %>
+
+<div class="page-head">
+  <h1>Repositories</h1>
+  <p class="muted"><%= repos.length %> <%= repos.length === 1 ? "repository" : "repositories" %></p>
+</div>
+
+<% if (repos.length === 0) { %>
+  <div class="empty-state">
+    <p>No repositories yet.</p>
+    <a class="btn btn-primary" href="/new">Create your first repository</a>
+  </div>
+<% } else { %>
+  <ul class="repo-list">
+    <% repos.forEach(function (repo) { %>
+      <li class="repo-card">
+        <div class="repo-card-main">
+          <a class="repo-name" href="/<%= encodeURIComponent(repo.name) %>"><%= repo.name %></a>
+          <% if (repo.description) { %>
+            <p class="repo-desc"><%= repo.description %></p>
+          <% } %>
+        </div>
+        <div class="repo-card-meta">
+          <% if (repo.empty) { %>
+            <span class="badge">empty</span>
+          <% } else { %>
+            <span class="badge badge-branch"><%= repo.defaultBranch %></span>
+          <% } %>
+          <span class="muted">updated <%= repo.updatedAt.toLocaleString() %></span>
+        </div>
+      </li>
+    <% }); %>
+  </ul>
+<% } %>
+
+<%- include("partials/footer") %>

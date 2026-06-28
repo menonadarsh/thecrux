@@ -1,0 +1,44 @@
+<%- include("partials/header", { title: "New repository" }) %>
+
+<div class="page-head">
+  <h1>Create a new repository</h1>
+  <p class="muted">A bare git repository will be created on the server.</p>
+</div>
+
+<% if (error) { %>
+  <div class="alert alert-error"><%= error %></div>
+<% } %>
+
+<form class="form" method="post" action="/new">
+  <label class="field">
+    <span class="field-label">Repository name</span>
+    <input
+      type="text"
+      name="name"
+      value="<%= values.name %>"
+      placeholder="my-project"
+      autocomplete="off"
+      autofocus
+      required
+    />
+    <span class="field-hint">Letters, numbers, '.', '_' and '-'. No spaces.</span>
+  </label>
+
+  <label class="field">
+    <span class="field-label">Description <span class="muted">(optional)</span></span>
+    <input
+      type="text"
+      name="description"
+      value="<%= values.description %>"
+      placeholder="A short description of your project"
+      autocomplete="off"
+    />
+  </label>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Create repository</button>
+    <a class="btn" href="/">Cancel</a>
+  </div>
+</form>
+
+<%- include("partials/footer") %>
