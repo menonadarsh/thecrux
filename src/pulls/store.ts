@@ -2,6 +2,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { repoDir } from "../git/exec.js";
+import { type Comment, nextCommentId } from "../issues/store.js";
 
 export type PullState = "open" | "merged" | "closed";
 
@@ -19,6 +20,7 @@ export interface PullRequest {
   mergeCommit?: string;
   fastForward?: boolean;
   closedAt?: string;
+  comments?: Comment[];
 }
 
 interface PullFile {
@@ -81,6 +83,29 @@ export async function createPull(
   data.pulls.push(pr);
   await save(dir, data);
   return pr;
+}
+
+export async function addPullComment(
+  name: string,
+  id: number,
+  author: string,
+  body: string,
+): Promise<Comment | null> {
+  const dir = repoDir(name);
+  if (!dir) return null;
+  const data = load(dir);
+  const pr = data.pulls.find((p) => p.id === id);
+  if (!pr) return null;
+  if (!pr.comments) pr.comments = [];
+  const comment: Comment = {
+    id: nextCommentId(pr.comments),
+    author,
+    body: body.trim(),
+    createdAt: new Date().toISOString(),
+  };
+  pr.comments.push(comment);
+  await save(dir, data);
+  return comment;
 }
 
 /** Apply a partial update to a pull request and persist it. */

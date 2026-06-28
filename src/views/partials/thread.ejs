@@ -1,0 +1,30 @@
+<%
+  // params: comments (array of {author, createdAt, html}), postUrl
+%>
+<div class="thread">
+  <% comments.forEach(function (c) { %>
+    <div class="comment">
+      <div class="comment-head">
+        <span class="comment-author">@<%= c.author %></span>
+        <span class="muted">commented <%= relativeTime(new Date(c.createdAt)) %></span>
+      </div>
+      <div class="comment-body md-body"><%- c.html || '<p class="muted">(no content)</p>' %></div>
+    </div>
+  <% }); %>
+
+  <span id="bottom"></span>
+
+  <% if (locals.currentUser) { %>
+    <form class="comment-form" method="post" action="<%= postUrl %>">
+      <div class="field-mono">
+        <textarea name="body" rows="4" class="field-textarea" placeholder="Leave a comment… (markdown supported)" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="kbtn primary" type="submit">comment</button>
+        <%- (typeof extraActions !== "undefined" ? extraActions : "") %>
+      </div>
+    </form>
+  <% } else { %>
+    <p class="muted"><a href="/login">Sign in</a> to comment.</p>
+  <% } %>
+</div>

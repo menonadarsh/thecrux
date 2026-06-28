@@ -4,7 +4,9 @@ import { compareRefs, mergeability, mergeRefs } from "../git/compare.js";
 import { listRefNames } from "../git/refs.js";
 import { getRepo, type RepoSummary } from "../git/repos.js";
 import { renderMarkdown } from "../render/markdown.js";
+import type { Comment } from "../issues/store.js";
 import {
+  addPullComment,
   countOpenPulls,
   createPull,
   getPull,
@@ -31,6 +33,11 @@ function repobar(repo: RepoSummary, branchCount: number, tagCount: number, pullC
 
 async function loadRepo(name: string) {
   return getRepo(name);
+}
+
+/** Render comment markdown for display. */
+function renderComments(comments: Comment[] | undefined) {
+  return (comments ?? []).map((c) => ({ ...c, html: c.body ? renderMarkdown(c.body) : "" }));
 }
 
 // Pull request list.
@@ -163,8 +170,23 @@ pullsRouter.get("/:name/pulls/:id", async (req, res, next) => {
       comparison,
       merge,
       markdownBody: pr.body ? renderMarkdown(pr.body) : "",
+      comments: renderComments(pr.comments),
       repobar: repobar(repo, branches.length, tags.length, countOpenPulls(repo.name)),
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Add a comment to a pull request.
+pullsRouter.post("/:name/pulls/:id/comment", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await loadRepo(req.params.name);
+    if (!repo) return void res.status(404).render("404", { name: req.params.name });
+    const id = Number(req.params.id);
+    const body = String(req.body.body ?? "");
+    if (body.trim()) await addPullComment(repo.name, id, req.currentUser!.username, body);
+    res.redirect(`/${enc(repo.name)}/pulls/${id}#bottom`);
   } catch (err) {
     next(err);
   }
@@ -204,6 +226,7 @@ pullsRouter.post("/:name/pulls/:id/merge", requireAuth, async (req, res, next) =
         comparison,
         merge,
         markdownBody: pr.body ? renderMarkdown(pr.body) : "",
+        comments: renderComments(pr.comments),
         mergeError: result.conflict
           ? "This pull request has conflicts and can't be merged automatically."
           : `Could not merge: ${result.reason ?? "unknown error"}.`,

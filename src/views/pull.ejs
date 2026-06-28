@@ -80,6 +80,9 @@
   <% } %>
 </div>
 
+<div class="prsection-title">conversation</div>
+<%- include("partials/thread", { comments: comments, postUrl: "/" + encodeURIComponent(repo.name) + "/pulls/" + pr.id + "/comment" }) %>
+
 <% if (comparison) { %>
   <div class="prsection-title">
     commits <span class="muted"><%= comparison.commits.length %></span>

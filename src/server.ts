@@ -5,6 +5,7 @@ import { config, ROOT } from "./config.js";
 import { gitHttpRouter } from "./git/http.js";
 import { ensureReposDir } from "./git/repos.js";
 import { authRouter } from "./routes/auth.js";
+import { issuesRouter } from "./routes/issues.js";
 import { pullsRouter } from "./routes/pulls.js";
 import { reposRouter } from "./routes/repos.js";
 import { encodePath, humanSize, relativeTime } from "./util/format.js";
@@ -35,6 +36,7 @@ app.use((_req, res, next) => {
 });
 
 app.use("/", authRouter);
+app.use("/", issuesRouter);
 app.use("/", pullsRouter);
 app.use("/", reposRouter);
 

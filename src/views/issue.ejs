@@ -1,0 +1,50 @@
+<%- include("partials/header", { title: "#" + issue.id + " · " + repo.name, crumb: "~/repos/" + repo.name + "/issues/" + issue.id }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">issue #<%= issue.id %></span>
+</section>
+
+<%- include("partials/repobar") %>
+
+<div class="pr-header">
+  <h1 class="pr-title"><%= issue.title %> <span class="pr-num">#<%= issue.id %></span></h1>
+  <div class="pr-subline">
+    <span class="pr-state-badge issue-badge-<%= issue.state %>">
+      <%= issue.state === 'closed' ? '✓ closed' : '● open' %>
+    </span>
+    <span class="muted">
+      <strong>@<%= issue.author %></strong> opened this issue <%= relativeTime(new Date(issue.createdAt)) %>
+      · <%= issue.comments.length %> comment<%= issue.comments.length === 1 ? "" : "s" %>
+    </span>
+  </div>
+</div>
+
+<!-- Original post -->
+<div class="comment comment-op">
+  <div class="comment-head">
+    <span class="comment-author">@<%= issue.author %></span>
+    <span class="muted">opened <%= relativeTime(new Date(issue.createdAt)) %></span>
+  </div>
+  <div class="comment-body md-body">
+    <%- bodyHtml || '<p class="muted">No description provided.</p>' %>
+  </div>
+</div>
+
+<%- include("partials/thread", { comments: comments, postUrl: "/" + encodeURIComponent(repo.name) + "/issues/" + issue.id + "/comment" }) %>
+
+<% if (locals.currentUser) { %>
+  <div class="state-actions">
+    <% if (issue.state === 'open') { %>
+      <form method="post" action="/<%= encodeURIComponent(repo.name) %>/issues/<%= issue.id %>/close" class="inline-form">
+        <button class="kbtn" type="submit">close issue</button>
+      </form>
+    <% } else { %>
+      <form method="post" action="/<%= encodeURIComponent(repo.name) %>/issues/<%= issue.id %>/reopen" class="inline-form">
+        <button class="kbtn" type="submit">reopen issue</button>
+      </form>
+    <% } %>
+  </div>
+<% } %>
+
+<%- include("partials/footer") %>

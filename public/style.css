@@ -1117,3 +1117,46 @@ a.commit-subject { color: var(--text); }
 
 .refrow-pr { color: var(--accent); font-size: 12px; border: 1px solid var(--accent); padding: 1px 8px; border-radius: 999px; }
 .refrow-pr:hover { background: var(--accent-soft); text-decoration: none; }
+
+/* ============================================================
+   Issues & comment threads (v0.9)
+   ============================================================ */
+.issue-state-open { color: #3fb950; }
+.issue-state-closed { color: var(--muted); }
+[data-theme="light"] .issue-state-open { color: #1a7f37; }
+
+.issue-badge-open { background: rgba(63,185,80,.15); color: #3fb950; }
+.issue-badge-closed { background: rgba(139,148,158,.18); color: var(--muted); }
+[data-theme="light"] .issue-badge-open { color: #1a7f37; }
+
+.prrow-comments { flex: none; color: var(--muted); font-size: 12px; align-self: center; }
+
+.form-wide { max-width: 760px; }
+
+/* comment thread */
+.thread { margin-bottom: 18px; }
+.comment {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.comment-op { border-color: var(--border-strong); }
+.comment-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.comment-author { color: var(--accent); font-weight: 600; }
+.comment-body { padding: 4px 16px; }
+.comment-body.md-body { padding: 16px; }
+
+.comment-form { margin-top: 6px; }
+.comment-form .field-mono { margin-bottom: 10px; }
+
+.state-actions { margin-top: 4px; }

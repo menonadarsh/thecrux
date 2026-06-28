@@ -1,0 +1,33 @@
+<%- include("partials/header", { title: "new issue · " + repo.name, crumb: "~/repos/" + repo.name + "/issues/new" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">new issue</span>
+</section>
+
+<%- include("partials/repobar") %>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<form class="form form-wide" method="post" action="/<%= encodeURIComponent(repo.name) %>/issues">
+  <label class="field">
+    <span class="field-label">title</span>
+    <div class="field-mono">
+      <input type="text" name="title" value="<%= values.title %>" placeholder="Something to track" autocomplete="off" autofocus required />
+    </div>
+  </label>
+  <label class="field">
+    <span class="field-label">description <span class="muted">(markdown supported)</span></span>
+    <div class="field-mono">
+      <textarea name="body" rows="10" class="field-textarea" placeholder="Describe the issue…"><%= values.body %></textarea>
+    </div>
+  </label>
+  <div class="form-actions">
+    <button class="kbtn primary" type="submit">create issue</button>
+    <a class="kbtn" href="/<%= encodeURIComponent(repo.name) %>/issues">cancel</a>
+  </div>
+</form>
+
+<%- include("partials/footer") %>

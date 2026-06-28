@@ -1,0 +1,43 @@
+<%- include("partials/header", { title: "issues · " + repo.name, crumb: "~/repos/" + repo.name + "/issues" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">issues</span>
+</section>
+
+<%- include("partials/repobar") %>
+
+<div class="toolbar">
+  <div class="prfilter">
+    <a class="prfilter-tab <%= filter === 'open' ? 'is-active' : '' %>" href="?state=open">● <%= counts.open %> open</a>
+    <a class="prfilter-tab <%= filter === 'closed' ? 'is-active' : '' %>" href="?state=closed">✓ <%= counts.closed %> closed</a>
+  </div>
+  <% if (locals.currentUser) { %>
+    <a class="kbtn primary" href="/<%= encodeURIComponent(repo.name) %>/issues/new">new issue</a>
+  <% } %>
+</div>
+
+<% if (issues.length === 0) { %>
+  <div class="blank"><p class="muted">No <%= filter %> issues.</p></div>
+<% } else { %>
+  <ul class="prlist" role="list">
+    <% issues.forEach(function (issue) { %>
+      <li class="prrow" data-nav-item data-name="<%= issue.title.toLowerCase() %>">
+        <span class="pr-state issue-state-<%= issue.state %>" title="<%= issue.state %>">
+          <%= issue.state === 'closed' ? '✓' : '●' %>
+        </span>
+        <span class="prrow-body">
+          <a class="prrow-title" href="/<%= encodeURIComponent(repo.name) %>/issues/<%= issue.id %>"><%= issue.title %></a>
+          <span class="prrow-meta">
+            #<%= issue.id %> · @<%= issue.author %> · opened <%= relativeTime(new Date(issue.createdAt)) %>
+          </span>
+        </span>
+        <% if (issue.comments && issue.comments.length) { %>
+          <span class="prrow-comments">💬 <%= issue.comments.length %></span>
+        <% } %>
+      </li>
+    <% }); %>
+  </ul>
+<% } %>
+
+<%- include("partials/footer") %>

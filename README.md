@@ -4,7 +4,7 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 
 ## Status
 
-**v0.8 — pull requests**
+**v0.9 — issues & comments** — _roadmap complete_ 🎉
 
 - [x] Create bare git repositories from a web UI
 - [x] List repositories on the home page
@@ -17,7 +17,8 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 - [x] Branches & tags — overview pages, ref switcher, repo subnav
 - [x] Users & authentication — accounts, sessions, repo ownership, push auth
 - [x] Pull requests — compare refs, view diff, merge (ff + merge commit)
-- [ ] Issues
+- [x] Issues — tracker with open/close and markdown comment threads
+      (the same thread powers pull-request conversations)
 
 ### Pull requests
 
