@@ -1,0 +1,30 @@
+<div class="filediff">
+  <div class="filediff-head">
+    <span class="diff-status diff-status-<%= file.status %>"><%= file.status.charAt(0).toUpperCase() %></span>
+    <span class="filediff-path">
+      <% if (file.oldPath && file.oldPath !== file.path) { %><%= file.oldPath %> → <% } %><%= file.path %>
+    </span>
+    <span class="filediff-counts">
+      <% if (file.additions) { %><span class="d-add">+<%= file.additions %></span><% } %>
+      <% if (file.deletions) { %><span class="d-del">−<%= file.deletions %></span><% } %>
+    </span>
+  </div>
+  <% if (file.binary) { %>
+    <div class="filediff-binary">Binary file not shown.</div>
+  <% } else if (file.lines.length === 0) { %>
+    <div class="filediff-binary">No textual changes.</div>
+  <% } else { %>
+    <table class="difftable">
+      <tbody>
+        <% file.lines.forEach(function (l) { %>
+          <tr class="dl dl-<%= l.kind %>">
+            <td class="dl-no dl-old"><%= l.oldNo === null ? "" : l.oldNo %></td>
+            <td class="dl-no dl-new"><%= l.newNo === null ? "" : l.newNo %></td>
+            <td class="dl-mark"><%= l.kind === "add" ? "+" : l.kind === "del" ? "−" : "" %></td>
+            <td class="dl-text"><%= l.text %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</div>

@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { getCommit, listCommits } from "../git/history.js";
 import { createRepo, getRepo, listRepos, RepoError, type RepoSummary } from "../git/repos.js";
 import {
   cleanSubpath,
@@ -202,6 +203,55 @@ reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
       rawUrl,
       crumbs: breadcrumb(repo.name, ref, sub, true),
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Commit history (optionally filtered to a path).
+reposRouter.get(["/:name/commits/:ref", "/:name/commits/:ref/*"], async (req, res, next) => {
+  try {
+    const repo = await getRepo(req.params.name);
+    if (!repo) {
+      res.status(404).render("404", { name: req.params.name });
+      return;
+    }
+    const ref = String(req.params.ref);
+    const sub = String((req.params as Record<string, string>)[0] ?? "");
+    const skip = Math.max(0, Number(req.query.skip) || 0);
+    const page = await listCommits(repo.name, ref, { skip, path: sub });
+    if (!page) {
+      res.status(404).render("404", { name: `${repo.name}@${ref}` });
+      return;
+    }
+    const pathQuery = sub ? `/${encPath(sub)}` : "";
+    res.render("commits", {
+      repo,
+      ref,
+      subpath: sub,
+      page,
+      basePath: `/${enc(repo.name)}/commits/${enc(ref)}${pathQuery}`,
+      crumbs: breadcrumb(repo.name, ref, sub, false),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// A single commit with its diff.
+reposRouter.get("/:name/commit/:sha", async (req, res, next) => {
+  try {
+    const repo = await getRepo(req.params.name);
+    if (!repo) {
+      res.status(404).render("404", { name: req.params.name });
+      return;
+    }
+    const commit = await getCommit(repo.name, String(req.params.sha));
+    if (!commit) {
+      res.status(404).render("404", { name: `${repo.name}@${req.params.sha}` });
+      return;
+    }
+    res.render("commit", { repo, commit });
   } catch (err) {
     next(err);
   }

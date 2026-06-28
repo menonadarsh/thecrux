@@ -13,9 +13,10 @@
 
 <% if (commit) { %>
   <div class="commitbar">
-    <span class="commit-hash"><%= commit.shortHash %></span>
-    <span class="commit-subject"><%= commit.subject %></span>
+    <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= commit.hash %>"><%= commit.shortHash %></a>
+    <a class="commit-subject" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= commit.hash %>"><%= commit.subject %></a>
     <span class="commit-meta"><%= commit.author %> · <%= relativeTime(commit.date) %></span>
+    <a class="commit-history" href="/<%= encodeURIComponent(repo.name) %>/commits/<%= encodeURIComponent(ref) %>">history →</a>
   </div>
 <% } %>
 

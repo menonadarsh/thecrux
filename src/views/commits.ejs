@@ -1,0 +1,37 @@
+<%- include("partials/header", { title: "commits · " + repo.name, crumb: "~/repos/" + repo.name + "/commits" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">git log<%= subpath ? " -- " + subpath : "" %></span>
+</section>
+
+<%- include("partials/crumbs") %>
+
+<% if (page.commits.length === 0) { %>
+  <div class="blank"><p class="muted">No commits<%= subpath ? " touch this path" : "" %>.</p></div>
+<% } else { %>
+  <ul class="commitlog" role="list">
+    <% page.commits.forEach(function (c) { %>
+      <li class="commitrow" data-nav-item data-name="<%= c.subject.toLowerCase() %>">
+        <a class="commitrow-hit" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= c.hash %>">
+          <span class="commitrow-body">
+            <span class="commitrow-subject"><%= c.subject %></span>
+            <span class="commitrow-meta"><%= c.author %> · <%= relativeTime(c.date) %></span>
+          </span>
+          <span class="commitrow-hash"><%= c.shortHash %></span>
+        </a>
+      </li>
+    <% }); %>
+  </ul>
+
+  <div class="pager">
+    <% if (page.skip > 0) { %>
+      <a class="kbtn" href="<%= basePath %>?skip=<%= Math.max(0, page.skip - page.limit) %>">← newer</a>
+    <% } else { %><span></span><% } %>
+    <% if (page.hasMore) { %>
+      <a class="kbtn" href="<%= basePath %>?skip=<%= page.skip + page.limit %>">older →</a>
+    <% } %>
+  </div>
+<% } %>
+
+<%- include("partials/footer") %>

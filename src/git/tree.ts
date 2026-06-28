@@ -1,16 +1,9 @@
-import { execFile } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-import { promisify } from "node:util";
-import { config } from "../config.js";
-import { normalizeRepoName } from "./repos.js";
+import { cleanSubpath, gitBuffer, gitText as git, repoDir, safeRef } from "./exec.js";
 
-const pexec = promisify(execFile);
+export { cleanSubpath } from "./exec.js";
 
 /** Largest blob we will render inline as text. */
 const MAX_TEXT_BYTES = 2 * 1024 * 1024;
-/** Largest object we will read into memory at all. */
-const MAX_BUFFER = 64 * 1024 * 1024;
 
 export interface TreeEntry {
   name: string;
@@ -40,46 +33,6 @@ export interface CommitInfo {
 
 /** Names that count as a repository README, in priority order. */
 const README_NAMES = ["README.md", "README.markdown", "README.txt", "README"];
-
-const REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
-
-/** Reject refs that could be misread as CLI options or contain odd characters. */
-function safeRef(ref: string): string | null {
-  return REF_RE.test(ref) ? ref : null;
-}
-
-/** Resolve a repo name to its existing bare directory. */
-function repoDir(name: string): string | null {
-  let clean: string;
-  try {
-    clean = normalizeRepoName(name);
-  } catch {
-    return null;
-  }
-  const dir = path.join(config.reposDir, `${clean}.git`);
-  return fs.existsSync(dir) ? dir : null;
-}
-
-/** Normalize a user-supplied subpath: drop empty/./.. segments. */
-export function cleanSubpath(p: string): string {
-  return (p || "")
-    .split("/")
-    .filter((s) => s && s !== "." && s !== "..")
-    .join("/");
-}
-
-async function git(dir: string, args: string[]): Promise<string> {
-  const { stdout } = await pexec("git", ["-C", dir, ...args], { maxBuffer: MAX_BUFFER });
-  return stdout as string;
-}
-
-async function gitBuffer(dir: string, args: string[]): Promise<Buffer> {
-  const { stdout } = await pexec("git", ["-C", dir, ...args], {
-    maxBuffer: MAX_BUFFER,
-    encoding: "buffer",
-  });
-  return stdout as unknown as Buffer;
-}
 
 /** The object type at `<ref>:<subpath>` ("tree" | "blob"), or null. */
 export async function objectType(

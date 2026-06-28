@@ -1,0 +1,42 @@
+<%- include("partials/header", { title: commit.shortHash + " · " + repo.name, crumb: "~/repos/" + repo.name + "/commit/" + commit.shortHash }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">git show <%= commit.shortHash %></span>
+</section>
+
+<div class="card commit-detail">
+  <div class="commit-headline"><%= commit.subject %></div>
+  <% if (commit.body) { %>
+    <pre class="commit-body"><code><%= commit.body %></code></pre>
+  <% } %>
+  <div class="commit-byline">
+    <span class="commit-author"><%= commit.author %></span>
+    <span class="muted">&lt;<%= commit.email %>&gt;</span>
+    <span class="muted">committed <%= relativeTime(commit.date) %></span>
+  </div>
+  <div class="commit-refs">
+    <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= commit.hash %>"><%= commit.shortHash %></a>
+    <% commit.parents.forEach(function (p) { %>
+      <span class="muted">parent</span>
+      <a class="commit-parent" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= p %>"><%= p.slice(0, 7) %></a>
+    <% }); %>
+    <a class="commit-browse" href="/<%= encodeURIComponent(repo.name) %>/tree/<%= commit.hash %>">browse tree →</a>
+  </div>
+</div>
+
+<div class="diffstat">
+  <span><strong><%= commit.files.length %></strong> <%= commit.files.length === 1 ? "file" : "files" %> changed</span>
+  <% if (commit.additions) { %><span class="d-add">+<%= commit.additions %></span><% } %>
+  <% if (commit.deletions) { %><span class="d-del">−<%= commit.deletions %></span><% } %>
+</div>
+
+<% if (commit.files.length === 0) { %>
+  <div class="blank"><p class="muted">No changes to show<%= commit.parents.length > 1 ? " (merge commit)" : "" %>.</p></div>
+<% } else { %>
+  <% commit.files.forEach(function (file) { %>
+    <%- include("partials/filediff", { file: file }) %>
+  <% }); %>
+<% } %>
+
+<%- include("partials/footer") %>
