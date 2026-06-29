@@ -23,9 +23,11 @@ function parseTrustProxy(raw: string | undefined): boolean | number | string {
 
 const truthy = (v: string | undefined) => /^(1|true|yes|on)$/i.test(v ?? "");
 
+const host = process.env.HOST ?? "127.0.0.1";
+
 export const config = {
   port: Number(process.env.PORT ?? 3000),
-  host: process.env.HOST ?? "127.0.0.1",
+  host,
 
   /** Base data directory. */
   dataDir,
@@ -45,6 +47,19 @@ export const config = {
    * automatically whenever the request itself is HTTPS.
    */
   forceSecureCookies: truthy(process.env.CRUX_SECURE_COOKIES),
+
+  /**
+   * git-over-SSH server. Enabled by default on an unprivileged port so it works
+   * in a container without root; the host follows HOST. Set CRUX_SSH_HOST_KEY to
+   * a PEM private key path to bring your own host key (stable known_hosts across
+   * replicas); otherwise one is generated and persisted under the data dir.
+   */
+  ssh: {
+    enabled: process.env.CRUX_SSH_ENABLED === undefined ? true : truthy(process.env.CRUX_SSH_ENABLED),
+    port: Number(process.env.CRUX_SSH_PORT ?? 2222),
+    host: process.env.CRUX_SSH_HOST ?? host,
+    hostKeyPath: process.env.CRUX_SSH_HOST_KEY,
+  },
 
   /** Public-facing name. */
   appName: "thecrux",

@@ -18,6 +18,7 @@ import {
   objectType,
   readBlob,
 } from "../git/tree.js";
+import { config } from "../config.js";
 import { isValidOwner } from "../git/exec.js";
 import { getUser } from "../auth/users.js";
 import {
@@ -82,6 +83,12 @@ function breadcrumb(repo: RepoSummary, ref: string, subpath: string, leafIsBlob:
 
 function cloneUrlFor(req: Request, repo: RepoSummary): string {
   return `${req.protocol}://${req.get("host")}/${repo.owner}/${repo.name}.git`;
+}
+
+/** SSH clone URL on this host (same hostname as the web request, SSH port), or null when SSH is off. */
+function sshCloneUrlFor(req: Request, repo: RepoSummary): string | null {
+  if (!config.ssh.enabled) return null;
+  return `ssh://git@${req.hostname}:${config.ssh.port}/${repo.owner}/${repo.name}.git`;
 }
 
 // JSON feed for the command palette / client-side search.
@@ -181,6 +188,7 @@ async function renderBrowse(
     readmeHtml,
     commit,
     cloneUrl: cloneUrlFor(req, repo),
+    sshCloneUrl: sshCloneUrlFor(req, repo),
     crumbs: breadcrumb(repo, ref, sub, false),
     repobar: {
       repo,
@@ -219,7 +227,11 @@ reposRouter.get("/:owner/:name", async (req, res, next) => {
     const repo = await loadReadableRepo(req, res);
     if (!repo) return;
     if (repo.empty || !repo.defaultBranch) {
-      res.render("repo", { repo, cloneUrl: cloneUrlFor(req, repo) });
+      res.render("repo", {
+        repo,
+        cloneUrl: cloneUrlFor(req, repo),
+        sshCloneUrl: sshCloneUrlFor(req, repo),
+      });
       return;
     }
     await renderBrowse(req, res, repo, repo.defaultBranch, "");

@@ -14,7 +14,9 @@ import {
   revokeToken,
   setDisplayName,
 } from "../auth/users.js";
+import { config } from "../config.js";
 import { deleteOwnerRepos, listReposByOwner } from "../git/repos.js";
+import { sshHostFingerprint } from "../git/ssh.js";
 
 export const accountRouter = Router();
 
@@ -42,6 +44,8 @@ async function renderAccount(
   res.status(status).render("account", {
     tokens: listTokens(username),
     sshKeys: listSshKeys(username),
+    sshEnabled: config.ssh.enabled,
+    sshHostFingerprint: config.ssh.enabled ? sshHostFingerprint() : null,
     repoCount: repos.length,
     error: view.error ?? null,
     notice: view.notice ?? null,

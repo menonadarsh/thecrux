@@ -25,6 +25,12 @@
     <code class="copy-text">git clone <%= cloneUrl %></code>
     <button class="copy-btn" type="button" title="Copy">copy</button>
   </div>
+  <% if (typeof sshCloneUrl !== "undefined" && sshCloneUrl) { %>
+    <div class="copy-row" data-copy="<%= sshCloneUrl %>">
+      <code class="copy-text">git clone <%= sshCloneUrl %></code>
+      <button class="copy-btn" type="button" title="Copy">copy</button>
+    </div>
+  <% } %>
 </section>
 
 <% if (repo.empty) { %>

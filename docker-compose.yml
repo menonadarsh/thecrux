@@ -4,13 +4,18 @@ services:
     image: thecrux
     ports:
       - "3000:3000"
+      # git-over-SSH. Map host 22 here (e.g. "22:2222") for bare git@host URLs.
+      - "2222:2222"
     volumes:
-      # Persists hosted repos, user accounts, and the session secret.
+      # Persists hosted repos, user accounts, the session secret, and the SSH host key.
       - crux-data:/data
     environment:
       # Optional: pin the session signing key. If unset, one is generated and
       # persisted under /data so sessions still survive restarts.
       - CRUX_SECRET=${CRUX_SECRET:-}
+      # SSH git transport (defaults shown). CRUX_SSH_ENABLED=0 to turn it off;
+      # CRUX_SSH_HOST_KEY=/path to bring your own host key.
+      - CRUX_SSH_PORT=${CRUX_SSH_PORT:-2222}
     restart: unless-stopped
 
 volumes:
