@@ -31,6 +31,9 @@ app.use((_req, res, next) => {
   res.locals.humanSize = humanSize;
   res.locals.relativeTime = relativeTime;
   res.locals.encodePath = encodePath;
+  // Base path for a repo, e.g. "/ada/my-project".
+  res.locals.repoBase = (repo: { owner: string; name: string }) =>
+    `/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}`;
   next();
 });
 

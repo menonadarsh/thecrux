@@ -53,11 +53,12 @@
   function buildEntries(repos) {
     var entries = STATIC_ACTIONS.slice();
     repos.forEach(function (r) {
+      var base = "/" + encodeURIComponent(r.owner) + "/" + encodeURIComponent(r.name);
       entries.push({
         kind: "repo",
-        label: r.name,
+        label: r.slug || r.owner + "/" + r.name,
         desc: r.description || "",
-        href: "/" + encodeURIComponent(r.name),
+        href: base,
       });
     });
     return entries;

@@ -9,134 +9,129 @@ import { seedRepo, uniqueName } from "./helpers.js";
 const author = { name: "tester", email: "tester@thecrux.local" };
 
 test("browse: tree listing, blob reading, readme, object type", async () => {
-  const name = uniqueName("tree");
-  await seedRepo(name, {
+  const repo = await seedRepo(uniqueName("tree"), {
     "README.md": "# Hello\n\nA test repo.\n",
     "src/index.js": "console.log('hi');\n",
   });
+  const slug = repo.slug;
 
-  const entries = await listDirectory(name, "main", "");
+  const entries = await listDirectory(slug, "main", "");
   assert.ok(entries);
   const names = entries!.map((e) => e.name);
   assert.deepEqual(names, ["src", "README.md"]); // dirs first, then files
   assert.equal(entries!.find((e) => e.name === "src")?.type, "tree");
 
-  assert.equal(await objectType(name, "main", "src"), "tree");
-  assert.equal(await objectType(name, "main", "README.md"), "blob");
-  assert.equal(await objectType(name, "main", "nope"), null);
+  assert.equal(await objectType(slug, "main", "src"), "tree");
+  assert.equal(await objectType(slug, "main", "README.md"), "blob");
+  assert.equal(await objectType(slug, "main", "nope"), null);
 
-  const blob = await readBlob(name, "main", "README.md");
+  const blob = await readBlob(slug, "main", "README.md");
   assert.match(blob!.text!, /# Hello/);
   assert.equal(blob!.isBinary, false);
 
-  const readme = await findReadme(name, "main", "");
+  const readme = await findReadme(slug, "main", "");
   assert.equal(readme?.name, "README.md");
 });
 
 test("history: commits and a parsed commit diff", async () => {
-  const name = uniqueName("hist");
-  const repo = await seedRepo(name, { "a.txt": "one\n" });
+  const repo = await seedRepo(uniqueName("hist"), { "a.txt": "one\n" });
   repo.writeFile("a.txt", "one\ntwo\n");
   repo.commitAll("add second line");
+  const slug = repo.slug;
 
-  const page = await listCommits(name, "main", {});
+  const page = await listCommits(slug, "main", {});
   assert.ok(page);
   assert.equal(page!.commits.length, 2);
   assert.equal(page!.commits[0].subject, "add second line");
 
-  const detail = await getCommit(name, page!.commits[0].hash);
+  const detail = await getCommit(slug, page!.commits[0].hash);
   assert.equal(detail!.files.length, 1);
   assert.equal(detail!.files[0].path, "a.txt");
   assert.equal(detail!.additions, 1);
 });
 
 test("refs: branches, tags and names", async () => {
-  const name = uniqueName("refs");
-  const repo = await seedRepo(name, { "f.txt": "x\n" });
+  const repo = await seedRepo(uniqueName("refs"), { "f.txt": "x\n" });
   repo.git(["tag", "v1.0.0"]);
   repo.git(["push", "origin", "v1.0.0"]);
   repo.git(["checkout", "-b", "feature"]);
   repo.writeFile("g.txt", "y\n");
   repo.commitAll("on feature", "feature");
+  const slug = repo.slug;
 
-  const branches = await listBranches(name);
+  const branches = await listBranches(slug);
   const branchNames = branches!.map((b) => b.name).sort();
   assert.deepEqual(branchNames, ["feature", "main"]);
 
-  const tags = await listTags(name);
+  const tags = await listTags(slug);
   assert.equal(tags!.length, 1);
   assert.equal(tags![0].name, "v1.0.0");
 
-  const refNames = await listRefNames(name);
+  const refNames = await listRefNames(slug);
   assert.ok(refNames.branches.includes("feature"));
   assert.ok(refNames.tags.includes("v1.0.0"));
 });
 
 test("compare + fast-forward merge", async () => {
-  const name = uniqueName("ff");
-  const repo = await seedRepo(name, { "base.txt": "base\n" });
+  const repo = await seedRepo(uniqueName("ff"), { "base.txt": "base\n" });
   repo.git(["checkout", "-b", "feature"]);
   repo.writeFile("feature.txt", "new\n");
   repo.commitAll("add feature file", "feature");
+  const slug = repo.slug;
 
-  const cmp = await compareRefs(name, "main", "feature");
+  const cmp = await compareRefs(slug, "main", "feature");
   assert.equal(cmp!.identical, false);
   assert.equal(cmp!.fastForward, true);
   assert.equal(cmp!.commits.length, 1);
-  assert.equal(await mergeability(name, cmp!), "ff");
+  assert.equal(await mergeability(slug, cmp!), "ff");
 
-  const result = await mergeRefs(name, "main", "feature", "merge", author);
+  const result = await mergeRefs(slug, "main", "feature", "merge", author);
   assert.equal(result.ok, true);
   assert.equal(result.fastForward, true);
-  // feature.txt is now reachable from main
-  assert.equal(await objectType(name, "main", "feature.txt"), "blob");
+  assert.equal(await objectType(slug, "main", "feature.txt"), "blob");
 });
 
 test("clean non-fast-forward merge produces a merge commit", async () => {
-  const name = uniqueName("merge");
-  const repo = await seedRepo(name, { "shared.txt": "shared\n" });
-  // diverge: branch adds its own file, main adds a different file
+  const repo = await seedRepo(uniqueName("merge"), { "shared.txt": "shared\n" });
   repo.git(["checkout", "-b", "topic"]);
   repo.writeFile("topic.txt", "topic\n");
   repo.commitAll("add topic file", "topic");
   repo.git(["checkout", "main"]);
   repo.writeFile("main.txt", "main\n");
   repo.commitAll("add main file");
+  const slug = repo.slug;
 
-  const cmp = await compareRefs(name, "main", "topic");
+  const cmp = await compareRefs(slug, "main", "topic");
   assert.equal(cmp!.fastForward, false);
-  assert.equal(await mergeability(name, cmp!), "clean");
+  assert.equal(await mergeability(slug, cmp!), "clean");
 
-  const result = await mergeRefs(name, "main", "topic", "merge topic", author);
+  const result = await mergeRefs(slug, "main", "topic", "merge topic", author);
   assert.equal(result.ok, true);
   assert.equal(result.fastForward, false);
 
-  // both files present on main, and the merge commit has two parents
-  assert.equal(await objectType(name, "main", "topic.txt"), "blob");
-  assert.equal(await objectType(name, "main", "main.txt"), "blob");
-  const merge = await getCommit(name, result.sha!);
+  assert.equal(await objectType(slug, "main", "topic.txt"), "blob");
+  assert.equal(await objectType(slug, "main", "main.txt"), "blob");
+  const merge = await getCommit(slug, result.sha!);
   assert.equal(merge!.parents.length, 2);
 });
 
 test("conflicting merge is detected and blocked", async () => {
-  const name = uniqueName("conflict");
-  const repo = await seedRepo(name, { "file.txt": "original\n" });
+  const repo = await seedRepo(uniqueName("conflict"), { "file.txt": "original\n" });
   repo.git(["checkout", "-b", "other"]);
   repo.writeFile("file.txt", "from other\n");
   repo.commitAll("change on other", "other");
   repo.git(["checkout", "main"]);
   repo.writeFile("file.txt", "from main\n");
   repo.commitAll("change on main");
+  const slug = repo.slug;
 
-  const cmp = await compareRefs(name, "main", "other");
+  const cmp = await compareRefs(slug, "main", "other");
   assert.equal(cmp!.fastForward, false);
-  assert.equal(await mergeability(name, cmp!), "conflict");
+  assert.equal(await mergeability(slug, cmp!), "conflict");
 
-  const before = repo.git(["rev-parse", "main"]).trim();
-  const result = await mergeRefs(name, "main", "other", "should fail", author);
+  const result = await mergeRefs(slug, "main", "other", "should fail", author);
   assert.equal(result.ok, false);
   assert.equal(result.conflict, true);
-  // main is unchanged on the server
-  const refList = await listRefNames(name);
+  const refList = await listRefNames(slug);
   assert.ok(refList.branches.includes("main"));
 });

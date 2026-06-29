@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { app } from "../src/app.js";
-import { config } from "../src/config.js";
+import { repoDirFor } from "../src/git/exec.js";
 import { createRepo } from "../src/git/repos.js";
 
 export interface TestServer {
@@ -52,6 +52,9 @@ export async function registerOverHttp(
 
 export interface SeededRepo {
   name: string;
+  owner: string;
+  /** "owner/name" identifier for the git layer. */
+  slug: string;
   bare: string;
   work: string;
   /** Run a git command in the working clone. */
@@ -68,9 +71,11 @@ export interface SeededRepo {
 export async function seedRepo(
   name: string,
   files: Record<string, string> = {},
+  owner = "tester",
 ): Promise<SeededRepo> {
-  await createRepo(name, "", "tester");
-  const bare = path.join(config.reposDir, `${name}.git`);
+  await createRepo(owner, name, "");
+  const slug = `${owner}/${name}`;
+  const bare = repoDirFor(owner, name);
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "cruxtest-"));
 
   execFileSync("git", ["clone", bare, work], { stdio: "pipe" });
@@ -96,7 +101,7 @@ export async function seedRepo(
     commitAll("init", "main");
   }
 
-  return { name, bare, work, git, commitAll, writeFile };
+  return { name, owner, slug, bare, work, git, commitAll, writeFile };
 }
 
 /** A unique repo name per test to keep the shared data dir collision-free. */

@@ -15,14 +15,14 @@
     <% branches.forEach(function (b) { %>
       <li class="refrow" data-nav-item data-name="<%= b.name.toLowerCase() %>">
         <span class="refrow-glyph">⎇</span>
-        <a class="refrow-name" href="/<%= encodeURIComponent(repo.name) %>/tree/<%= encodeURIComponent(b.name) %>"><%= b.name %></a>
+        <a class="refrow-name" href="<%= repoBase(repo) %>/tree/<%= encodeURIComponent(b.name) %>"><%= b.name %></a>
         <% if (b.name === defaultBranch) { %><span class="tag tag-branch">default</span><% } %>
         <span class="refrow-sub"><%= b.subject %></span>
         <span class="refrow-meta">
           <% if (locals.currentUser && defaultBranch && b.name !== defaultBranch) { %>
-            <a class="refrow-pr" href="/<%= encodeURIComponent(repo.name) %>/pulls/new?base=<%= encodeURIComponent(defaultBranch) %>&head=<%= encodeURIComponent(b.name) %>">open PR</a>
+            <a class="refrow-pr" href="<%= repoBase(repo) %>/pulls/new?base=<%= encodeURIComponent(defaultBranch) %>&head=<%= encodeURIComponent(b.name) %>">open PR</a>
           <% } %>
-          <a class="refrow-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= b.shortHash %>"><%= b.shortHash %></a>
+          <a class="refrow-hash" href="<%= repoBase(repo) %>/commit/<%= b.shortHash %>"><%= b.shortHash %></a>
           <% if (b.date) { %><span class="muted"><%= relativeTime(b.date) %></span><% } %>
         </span>
       </li>

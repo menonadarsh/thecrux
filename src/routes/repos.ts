@@ -2,7 +2,14 @@ import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../auth/middleware.js";
 import { getCommit, listCommits } from "../git/history.js";
 import { listBranches, listRefNames, listTags } from "../git/refs.js";
-import { createRepo, getRepo, listRepos, RepoError, type RepoSummary } from "../git/repos.js";
+import {
+  createRepo,
+  getRepo,
+  listRepos,
+  listReposByOwner,
+  RepoError,
+  type RepoSummary,
+} from "../git/repos.js";
 import {
   cleanSubpath,
   findReadme,
@@ -11,6 +18,8 @@ import {
   objectType,
   readBlob,
 } from "../git/tree.js";
+import { isValidOwner } from "../git/exec.js";
+import { getUser } from "../auth/users.js";
 import { highlightFile } from "../render/highlight.js";
 import { isMarkdown, renderMarkdown } from "../render/markdown.js";
 
@@ -18,13 +27,19 @@ export const reposRouter = Router();
 
 const enc = encodeURIComponent;
 
+/** Base URL path for a repo, e.g. "/ada/my-project". */
+function base(repo: RepoSummary): string {
+  return `/${enc(repo.owner)}/${enc(repo.name)}`;
+}
+
+/** The "owner/name" slug for the git layer from request params. */
+function slugOf(req: Request): string {
+  return `${req.params.owner}/${req.params.name}`;
+}
+
 /** Encode a slash-separated path, preserving the separators. */
 function encPath(p: string): string {
-  return cleanSubpath(p)
-    .split("/")
-    .filter(Boolean)
-    .map(enc)
-    .join("/");
+  return cleanSubpath(p).split("/").filter(Boolean).map(enc).join("/");
 }
 
 interface Crumb {
@@ -33,22 +48,24 @@ interface Crumb {
 }
 
 /** Build breadcrumb segments for a path within a repo at a ref. */
-function breadcrumb(repoName: string, ref: string, subpath: string, leafIsBlob: boolean): Crumb[] {
+function breadcrumb(repo: RepoSummary, ref: string, subpath: string, leafIsBlob: boolean): Crumb[] {
+  const b = base(repo);
   const parts = cleanSubpath(subpath).split("/").filter(Boolean);
   const crumbs: Crumb[] = [
-    { label: repoName, href: parts.length ? `/${enc(repoName)}/tree/${enc(ref)}` : null },
+    { label: repo.name, href: parts.length ? `${b}/tree/${enc(ref)}` : null },
   ];
   let acc = "";
   parts.forEach((part, i) => {
     acc = acc ? `${acc}/${part}` : part;
     const isLast = i === parts.length - 1;
     const kind = isLast && leafIsBlob ? "blob" : "tree";
-    crumbs.push({
-      label: part,
-      href: isLast ? null : `/${enc(repoName)}/${kind}/${enc(ref)}/${encPath(acc)}`,
-    });
+    crumbs.push({ label: part, href: isLast ? null : `${b}/${kind}/${enc(ref)}/${encPath(acc)}` });
   });
   return crumbs;
+}
+
+function cloneUrlFor(req: Request, repo: RepoSummary): string {
+  return `${req.protocol}://${req.get("host")}/${repo.owner}/${repo.name}.git`;
 }
 
 // JSON feed for the command palette / client-side search.
@@ -58,6 +75,8 @@ reposRouter.get("/api/repos.json", async (_req, res, next) => {
     res.json(
       repos.map((r) => ({
         name: r.name,
+        owner: r.owner,
+        slug: r.slug,
         description: r.description,
         empty: r.empty,
         defaultBranch: r.defaultBranch,
@@ -83,19 +102,16 @@ reposRouter.get("/new", requireAuth, (_req, res) => {
   res.render("new", { error: null, values: { name: "", description: "" } });
 });
 
-// Create a repository.
+// Create a repository (under the current user's namespace).
 reposRouter.post("/new", requireAuth, async (req, res, next) => {
   const name = String(req.body.name ?? "");
   const description = String(req.body.description ?? "");
   try {
-    const repo = await createRepo(name, description, req.currentUser?.username ?? null);
-    res.redirect(`/${enc(repo.name)}`);
+    const repo = await createRepo(req.currentUser!.username, name, description);
+    res.redirect(base(repo));
   } catch (err) {
     if (err instanceof RepoError) {
-      res.status(err.status).render("new", {
-        error: err.message,
-        values: { name, description },
-      });
+      res.status(err.status).render("new", { error: err.message, values: { name, description } });
       return;
     }
     next(err);
@@ -111,17 +127,16 @@ async function renderBrowse(
   subpath: string,
 ): Promise<void> {
   const sub = cleanSubpath(subpath);
-  const entries = await listDirectory(repo.name, ref, sub);
+  const entries = await listDirectory(repo.slug, ref, sub);
   if (!entries) {
-    res.status(404).render("404", { name: `${repo.name}/${sub}` });
+    res.status(404).render("404", { name: `${repo.slug}/${sub}` });
     return;
   }
   const [readme, commit, refNames] = await Promise.all([
-    findReadme(repo.name, ref, sub),
-    headCommit(repo.name, ref),
-    listRefNames(repo.name),
+    findReadme(repo.slug, ref, sub),
+    headCommit(repo.slug, ref),
+    listRefNames(repo.slug),
   ]);
-  const cloneUrl = `${req.protocol}://${req.get("host")}/${repo.name}.git`;
   const readmeHtml = readme && isMarkdown(readme.name) ? renderMarkdown(readme.text) : null;
 
   res.render("browse", {
@@ -133,8 +148,8 @@ async function renderBrowse(
     readme,
     readmeHtml,
     commit,
-    cloneUrl,
-    crumbs: breadcrumb(repo.name, ref, sub, false),
+    cloneUrl: cloneUrlFor(req, repo),
+    crumbs: breadcrumb(repo, ref, sub, false),
     repobar: {
       repo,
       ref,
@@ -149,17 +164,32 @@ async function renderBrowse(
   });
 }
 
-// Repository root.
-reposRouter.get("/:name", async (req, res, next) => {
+// User / owner page — lists the repos owned by :owner.
+reposRouter.get("/:owner", async (req, res, next) => {
   try {
-    const repo = await getRepo(req.params.name);
-    if (!repo) {
-      res.status(404).render("404", { name: req.params.name });
+    const owner = String(req.params.owner);
+    if (!isValidOwner(owner)) {
+      res.status(404).render("404", { name: owner });
       return;
     }
-    const cloneUrl = `${req.protocol}://${req.get("host")}/${repo.name}.git`;
+    const repos = await listReposByOwner(owner);
+    const user = getUser(owner);
+    res.render("user", { owner, repos, displayName: user?.displayName ?? owner });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Repository root.
+reposRouter.get("/:owner/:name", async (req, res, next) => {
+  try {
+    const repo = await getRepo(slugOf(req));
+    if (!repo) {
+      res.status(404).render("404", { name: slugOf(req) });
+      return;
+    }
     if (repo.empty || !repo.defaultBranch) {
-      res.render("repo", { repo, cloneUrl });
+      res.render("repo", { repo, cloneUrl: cloneUrlFor(req, repo) });
       return;
     }
     await renderBrowse(req, res, repo, repo.defaultBranch, "");
@@ -169,18 +199,17 @@ reposRouter.get("/:name", async (req, res, next) => {
 });
 
 // Browse a directory at a ref.
-reposRouter.get(["/:name/tree/:ref", "/:name/tree/:ref/*"], async (req, res, next) => {
+reposRouter.get(["/:owner/:name/tree/:ref", "/:owner/:name/tree/:ref/*"], async (req, res, next) => {
   try {
-    const repo = await getRepo(req.params.name);
+    const repo = await getRepo(slugOf(req));
     if (!repo) {
-      res.status(404).render("404", { name: req.params.name });
+      res.status(404).render("404", { name: slugOf(req) });
       return;
     }
     const ref = String(req.params.ref);
     const sub = String((req.params as Record<string, string>)[0] ?? "");
-    // If the target is actually a file, redirect to the blob view.
-    if (sub && (await objectType(repo.name, ref, sub)) === "blob") {
-      res.redirect(`/${enc(repo.name)}/blob/${enc(ref)}/${encPath(sub)}`);
+    if (sub && (await objectType(repo.slug, ref, sub)) === "blob") {
+      res.redirect(`${base(repo)}/blob/${enc(ref)}/${encPath(sub)}`);
       return;
     }
     await renderBrowse(req, res, repo, ref, sub);
@@ -190,28 +219,27 @@ reposRouter.get(["/:name/tree/:ref", "/:name/tree/:ref/*"], async (req, res, nex
 });
 
 // View a file at a ref.
-reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
+reposRouter.get("/:owner/:name/blob/:ref/*", async (req, res, next) => {
   try {
-    const repo = await getRepo(req.params.name);
+    const repo = await getRepo(slugOf(req));
     if (!repo) {
-      res.status(404).render("404", { name: req.params.name });
+      res.status(404).render("404", { name: slugOf(req) });
       return;
     }
     const ref = String(req.params.ref);
     const sub = String((req.params as Record<string, string>)[0] ?? "");
 
-    // If the target is a directory, redirect to the tree view.
-    if ((await objectType(repo.name, ref, sub)) === "tree") {
-      res.redirect(`/${enc(repo.name)}/tree/${enc(ref)}/${encPath(sub)}`);
+    if ((await objectType(repo.slug, ref, sub)) === "tree") {
+      res.redirect(`${base(repo)}/tree/${enc(ref)}/${encPath(sub)}`);
       return;
     }
 
-    const blob = await readBlob(repo.name, ref, sub);
+    const blob = await readBlob(repo.slug, ref, sub);
     if (!blob) {
-      res.status(404).render("404", { name: `${repo.name}/${sub}` });
+      res.status(404).render("404", { name: `${repo.slug}/${sub}` });
       return;
     }
-    const rawUrl = `/${enc(repo.name)}/raw/${enc(ref)}/${encPath(sub)}`;
+    const rawUrl = `${base(repo)}/raw/${enc(ref)}/${encPath(sub)}`;
 
     let highlightedHtml: string | null = null;
     let lineCount = 0;
@@ -226,7 +254,7 @@ reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
       if (isMarkdown(sub)) markdownHtml = renderMarkdown(blob.text);
     }
 
-    const refNames = await listRefNames(repo.name);
+    const refNames = await listRefNames(repo.slug);
     res.render("blob", {
       repo,
       ref,
@@ -237,7 +265,7 @@ reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
       language,
       markdownHtml,
       rawUrl,
-      crumbs: breadcrumb(repo.name, ref, sub, true),
+      crumbs: breadcrumb(repo, ref, sub, true),
       repobar: {
         repo,
         ref,
@@ -256,57 +284,60 @@ reposRouter.get("/:name/blob/:ref/*", async (req, res, next) => {
 });
 
 // Commit history (optionally filtered to a path).
-reposRouter.get(["/:name/commits/:ref", "/:name/commits/:ref/*"], async (req, res, next) => {
-  try {
-    const repo = await getRepo(req.params.name);
-    if (!repo) {
-      res.status(404).render("404", { name: req.params.name });
-      return;
-    }
-    const ref = String(req.params.ref);
-    const sub = String((req.params as Record<string, string>)[0] ?? "");
-    const skip = Math.max(0, Number(req.query.skip) || 0);
-    const page = await listCommits(repo.name, ref, { skip, path: sub });
-    if (!page) {
-      res.status(404).render("404", { name: `${repo.name}@${ref}` });
-      return;
-    }
-    const pathQuery = sub ? `/${encPath(sub)}` : "";
-    const refNames = await listRefNames(repo.name);
-    res.render("commits", {
-      repo,
-      ref,
-      subpath: sub,
-      page,
-      basePath: `/${enc(repo.name)}/commits/${enc(ref)}${pathQuery}`,
-      crumbs: breadcrumb(repo.name, ref, sub, false),
-      repobar: {
+reposRouter.get(
+  ["/:owner/:name/commits/:ref", "/:owner/:name/commits/:ref/*"],
+  async (req, res, next) => {
+    try {
+      const repo = await getRepo(slugOf(req));
+      if (!repo) {
+        res.status(404).render("404", { name: slugOf(req) });
+        return;
+      }
+      const ref = String(req.params.ref);
+      const sub = String((req.params as Record<string, string>)[0] ?? "");
+      const skip = Math.max(0, Number(req.query.skip) || 0);
+      const page = await listCommits(repo.slug, ref, { skip, path: sub });
+      if (!page) {
+        res.status(404).render("404", { name: `${repo.slug}@${ref}` });
+        return;
+      }
+      const pathQuery = sub ? `/${encPath(sub)}` : "";
+      const refNames = await listRefNames(repo.slug);
+      res.render("commits", {
         repo,
         ref,
-        active: "commits",
-        switchView: "commits",
         subpath: sub,
-        branches: refNames.branches,
-        tags: refNames.tags,
-        branchCount: refNames.branches.length,
-        tagCount: refNames.tags.length,
-      },
-    });
-  } catch (err) {
-    next(err);
-  }
-});
+        page,
+        basePath: `${base(repo)}/commits/${enc(ref)}${pathQuery}`,
+        crumbs: breadcrumb(repo, ref, sub, false),
+        repobar: {
+          repo,
+          ref,
+          active: "commits",
+          switchView: "commits",
+          subpath: sub,
+          branches: refNames.branches,
+          tags: refNames.tags,
+          branchCount: refNames.branches.length,
+          tagCount: refNames.tags.length,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // Branches overview.
-reposRouter.get("/:name/branches", async (req, res, next) => {
+reposRouter.get("/:owner/:name/branches", async (req, res, next) => {
   try {
-    const repo = await getRepo(req.params.name);
+    const repo = await getRepo(slugOf(req));
     if (!repo) {
-      res.status(404).render("404", { name: req.params.name });
+      res.status(404).render("404", { name: slugOf(req) });
       return;
     }
-    const branches = (await listBranches(repo.name)) ?? [];
-    const tagNames = (await listRefNames(repo.name)).tags;
+    const branches = (await listBranches(repo.slug)) ?? [];
+    const tagNames = (await listRefNames(repo.slug)).tags;
     res.render("branches", {
       repo,
       branches,
@@ -325,15 +356,15 @@ reposRouter.get("/:name/branches", async (req, res, next) => {
 });
 
 // Tags overview.
-reposRouter.get("/:name/tags", async (req, res, next) => {
+reposRouter.get("/:owner/:name/tags", async (req, res, next) => {
   try {
-    const repo = await getRepo(req.params.name);
+    const repo = await getRepo(slugOf(req));
     if (!repo) {
-      res.status(404).render("404", { name: req.params.name });
+      res.status(404).render("404", { name: slugOf(req) });
       return;
     }
-    const tags = (await listTags(repo.name)) ?? [];
-    const branchNames = (await listRefNames(repo.name)).branches;
+    const tags = (await listTags(repo.slug)) ?? [];
+    const branchNames = (await listRefNames(repo.slug)).branches;
     res.render("tags", {
       repo,
       tags,
@@ -351,16 +382,16 @@ reposRouter.get("/:name/tags", async (req, res, next) => {
 });
 
 // A single commit with its diff.
-reposRouter.get("/:name/commit/:sha", async (req, res, next) => {
+reposRouter.get("/:owner/:name/commit/:sha", async (req, res, next) => {
   try {
-    const repo = await getRepo(req.params.name);
+    const repo = await getRepo(slugOf(req));
     if (!repo) {
-      res.status(404).render("404", { name: req.params.name });
+      res.status(404).render("404", { name: slugOf(req) });
       return;
     }
-    const commit = await getCommit(repo.name, String(req.params.sha));
+    const commit = await getCommit(repo.slug, String(req.params.sha));
     if (!commit) {
-      res.status(404).render("404", { name: `${repo.name}@${req.params.sha}` });
+      res.status(404).render("404", { name: `${repo.slug}@${req.params.sha}` });
       return;
     }
     res.render("commit", { repo, commit });
@@ -370,16 +401,16 @@ reposRouter.get("/:name/commit/:sha", async (req, res, next) => {
 });
 
 // Serve raw file bytes.
-reposRouter.get("/:name/raw/:ref/*", async (req, res, next) => {
+reposRouter.get("/:owner/:name/raw/:ref/*", async (req, res, next) => {
   try {
-    const repo = await getRepo(req.params.name);
+    const repo = await getRepo(slugOf(req));
     if (!repo) {
       res.status(404).send("repository not found");
       return;
     }
     const ref = String(req.params.ref);
     const sub = String((req.params as Record<string, string>)[0] ?? "");
-    const blob = await readBlob(repo.name, ref, sub);
+    const blob = await readBlob(repo.slug, ref, sub);
     if (!blob) {
       res.status(404).send("not found");
       return;

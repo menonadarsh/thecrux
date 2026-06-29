@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import { config } from "../config.js";
-import { normalizeRepoName } from "./repos.js";
 
 const pexec = promisify(execFile);
 
@@ -13,15 +12,43 @@ export const MAX_BUFFER = 64 * 1024 * 1024;
 const REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 const SHA_RE = /^[0-9a-fA-F]{4,64}$/;
 
-/** Resolve a repo name to its existing bare directory, or null. */
-export function repoDir(name: string): string | null {
-  let clean: string;
-  try {
-    clean = normalizeRepoName(name);
-  } catch {
-    return null;
-  }
-  const dir = path.join(config.reposDir, `${clean}.git`);
+/** Repository name segment (no slashes). */
+export const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+/** Owner / username segment. */
+export const OWNER_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/;
+
+export function isValidRepoName(name: string): boolean {
+  return NAME_RE.test(name) && !name.endsWith(".git");
+}
+
+export function isValidOwner(owner: string): boolean {
+  return OWNER_RE.test(owner);
+}
+
+export interface RepoRef {
+  owner: string;
+  name: string;
+}
+
+/** Parse an "owner/name" slug into its parts, or null if invalid. */
+export function parseRepoRef(slug: string): RepoRef | null {
+  const parts = slug.split("/");
+  if (parts.length !== 2) return null;
+  const [owner, name] = parts;
+  if (!isValidOwner(owner) || !isValidRepoName(name)) return null;
+  return { owner, name };
+}
+
+/** Absolute path to a repo's bare directory: <reposDir>/<owner>/<name>.git. */
+export function repoDirFor(owner: string, name: string): string {
+  return path.join(config.reposDir, owner, `${name}.git`);
+}
+
+/** Resolve an "owner/name" slug to its existing bare directory, or null. */
+export function repoDir(slug: string): string | null {
+  const ref = parseRepoRef(slug);
+  if (!ref) return null;
+  const dir = repoDirFor(ref.owner, ref.name);
   return fs.existsSync(dir) ? dir : null;
 }
 

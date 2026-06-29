@@ -15,11 +15,11 @@
     <% tags.forEach(function (t) { %>
       <li class="refrow" data-nav-item data-name="<%= t.name.toLowerCase() %>">
         <span class="refrow-glyph">⌑</span>
-        <a class="refrow-name" href="/<%= encodeURIComponent(repo.name) %>/tree/<%= encodeURIComponent(t.name) %>"><%= t.name %></a>
+        <a class="refrow-name" href="<%= repoBase(repo) %>/tree/<%= encodeURIComponent(t.name) %>"><%= t.name %></a>
         <% if (t.annotated) { %><span class="tag">annotated</span><% } %>
         <span class="refrow-sub"><%= t.subject %></span>
         <span class="refrow-meta">
-          <a class="refrow-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= t.shortHash %>"><%= t.shortHash %></a>
+          <a class="refrow-hash" href="<%= repoBase(repo) %>/commit/<%= t.shortHash %>"><%= t.shortHash %></a>
           <% if (t.date) { %><span class="muted"><%= relativeTime(t.date) %></span><% } %>
         </span>
       </li>

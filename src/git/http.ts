@@ -1,12 +1,9 @@
 import { spawn, execFile } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
 import { promisify } from "node:util";
 import zlib from "node:zlib";
 import { Router, type Request, type Response } from "express";
 import { checkBasicAuth } from "../auth/middleware.js";
-import { config } from "../config.js";
-import { normalizeRepoName } from "./repos.js";
+import { repoDir } from "./exec.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -31,10 +28,10 @@ function authorizePush(req: Request, res: Response): boolean {
  * mode. This makes `git clone`, `git fetch` and `git push` work against thecrux
  * using the exact same on-disk bare repositories the web UI manages.
  *
- *   GET  /:repo/info/refs?service=git-upload-pack    ref advertisement (fetch)
- *   GET  /:repo/info/refs?service=git-receive-pack   ref advertisement (push)
- *   POST /:repo/git-upload-pack                       fetch negotiation
- *   POST /:repo/git-receive-pack                      push
+ *   GET  /:owner/:repo/info/refs?service=git-upload-pack    advertisement (fetch)
+ *   GET  /:owner/:repo/info/refs?service=git-receive-pack   advertisement (push)
+ *   POST /:owner/:repo/git-upload-pack                       fetch negotiation
+ *   POST /:owner/:repo/git-receive-pack                      push
  */
 
 const VALID_SERVICES = new Set(["git-upload-pack", "git-receive-pack"]);
@@ -48,17 +45,10 @@ function pktLine(line: string): Buffer {
 /** The pkt-line flush packet. */
 const FLUSH = Buffer.from("0000");
 
-/** Resolve a URL repo segment (e.g. "foo.git" or "foo") to an existing bare dir. */
-function resolveRepoDir(repoParam: string): string | null {
-  const bareName = repoParam.replace(/\.git$/, "");
-  let name: string;
-  try {
-    name = normalizeRepoName(bareName);
-  } catch {
-    return null;
-  }
-  const dir = path.join(config.reposDir, `${name}.git`);
-  return fs.existsSync(dir) ? dir : null;
+/** Resolve "owner" + a repo segment (e.g. "foo.git") to an existing bare dir. */
+function resolveRepoDir(owner: string, repoParam: string): string | null {
+  const name = repoParam.replace(/\.git$/, "");
+  return repoDir(`${owner}/${name}`);
 }
 
 /**
@@ -94,7 +84,7 @@ async function repairHead(dir: string): Promise<void> {
 export const gitHttpRouter = Router();
 
 // Ref advertisement (the first request of any clone/fetch/push).
-gitHttpRouter.get("/:repo/info/refs", (req: Request, res: Response) => {
+gitHttpRouter.get("/:owner/:repo/info/refs", (req: Request, res: Response) => {
   const service = String(req.query.service ?? "");
   if (!VALID_SERVICES.has(service)) {
     // We only support the smart protocol.
@@ -104,7 +94,7 @@ gitHttpRouter.get("/:repo/info/refs", (req: Request, res: Response) => {
   // Pushing must be authenticated, including this advertisement request.
   if (service === "git-receive-pack" && !authorizePush(req, res)) return;
 
-  const dir = resolveRepoDir(String(req.params.repo));
+  const dir = resolveRepoDir(String(req.params.owner), String(req.params.repo));
   if (!dir) {
     res.status(404).send("repository not found");
     return;
@@ -132,7 +122,7 @@ function rpcHandler(service: string) {
   return (req: Request, res: Response) => {
     if (service === "git-receive-pack" && !authorizePush(req, res)) return;
 
-    const dir = resolveRepoDir(String(req.params.repo));
+    const dir = resolveRepoDir(String(req.params.owner), String(req.params.repo));
     if (!dir) {
       res.status(404).send("repository not found");
       return;
@@ -168,5 +158,5 @@ function rpcHandler(service: string) {
   };
 }
 
-gitHttpRouter.post("/:repo/git-upload-pack", rpcHandler("git-upload-pack"));
-gitHttpRouter.post("/:repo/git-receive-pack", rpcHandler("git-receive-pack"));
+gitHttpRouter.post("/:owner/:repo/git-upload-pack", rpcHandler("git-upload-pack"));
+gitHttpRouter.post("/:owner/:repo/git-receive-pack", rpcHandler("git-receive-pack"));

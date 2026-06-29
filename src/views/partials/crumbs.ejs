@@ -1,5 +1,5 @@
 <nav class="crumbs">
-  <a class="crumb-ref" href="/<%= encodeURIComponent(repo.name) %>/tree/<%= encodeURIComponent(ref) %>">
+  <a class="crumb-ref" href="<%= repoBase(repo) %>/tree/<%= encodeURIComponent(ref) %>">
     <span class="tag tag-branch"><%= ref %></span>
   </a>
   <% crumbs.forEach(function (c, i) { %>

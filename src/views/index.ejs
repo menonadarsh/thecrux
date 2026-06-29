@@ -27,7 +27,7 @@
   <ul class="repos" id="repo-list" role="list">
     <% repos.forEach(function (repo, i) { %>
       <li class="repo" data-nav-item data-name="<%= repo.name.toLowerCase() %> <%= (repo.description||'').toLowerCase() %>">
-        <a class="repo-hit" href="/<%= encodeURIComponent(repo.name) %>">
+        <a class="repo-hit" href="<%= repoBase(repo) %>">
           <span class="repo-spine"></span>
           <span class="repo-body">
             <span class="repo-line">

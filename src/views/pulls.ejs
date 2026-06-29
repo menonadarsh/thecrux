@@ -14,7 +14,7 @@
     <a class="prfilter-tab <%= filter === 'closed' ? 'is-active' : '' %>" href="?state=closed">✕ <%= counts.closed %> closed</a>
   </div>
   <% if (locals.currentUser) { %>
-    <a class="kbtn primary" href="/<%= encodeURIComponent(repo.name) %>/pulls/new">new pull request</a>
+    <a class="kbtn primary" href="<%= repoBase(repo) %>/pulls/new">new pull request</a>
   <% } %>
 </div>
 
@@ -28,7 +28,7 @@
           <%= pr.state === 'merged' ? '⇄' : pr.state === 'closed' ? '✕' : '●' %>
         </span>
         <span class="prrow-body">
-          <a class="prrow-title" href="/<%= encodeURIComponent(repo.name) %>/pulls/<%= pr.id %>"><%= pr.title %></a>
+          <a class="prrow-title" href="<%= repoBase(repo) %>/pulls/<%= pr.id %>"><%= pr.title %></a>
           <span class="prrow-meta">
             #<%= pr.id %> · @<%= pr.author %> ·
             <span class="ref-chip"><%= pr.head %></span> → <span class="ref-chip"><%= pr.base %></span> ·

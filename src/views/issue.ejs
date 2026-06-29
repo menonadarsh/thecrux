@@ -31,16 +31,16 @@
   </div>
 </div>
 
-<%- include("partials/thread", { comments: comments, postUrl: "/" + encodeURIComponent(repo.name) + "/issues/" + issue.id + "/comment" }) %>
+<%- include("partials/thread", { comments: comments, postUrl: repoBase(repo) + "/issues/" + issue.id + "/comment" }) %>
 
 <% if (locals.currentUser) { %>
   <div class="state-actions">
     <% if (issue.state === 'open') { %>
-      <form method="post" action="/<%= encodeURIComponent(repo.name) %>/issues/<%= issue.id %>/close" class="inline-form">
+      <form method="post" action="<%= repoBase(repo) %>/issues/<%= issue.id %>/close" class="inline-form">
         <button class="kbtn" type="submit">close issue</button>
       </form>
     <% } else { %>
-      <form method="post" action="/<%= encodeURIComponent(repo.name) %>/issues/<%= issue.id %>/reopen" class="inline-form">
+      <form method="post" action="<%= repoBase(repo) %>/issues/<%= issue.id %>/reopen" class="inline-form">
         <button class="kbtn" type="submit">reopen issue</button>
       </form>
     <% } %>

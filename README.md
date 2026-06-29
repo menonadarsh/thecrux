@@ -22,7 +22,7 @@ A self-hosted code hosting solution — like GitHub — built incrementally.
 
 ### Pull requests
 
-Open a PR from `/:repo/pulls/new` (or the "open PR" link on the branches
+Open a PR from `/:owner/:repo/pulls/new` (or the "open PR" link on the branches
 page), comparing a compare ref into a base ref. The PR page shows the commits
 and combined diff and, for signed-in users, a merge button. Merges are
 performed server-side directly on the bare repo: fast-forward when possible,
@@ -39,22 +39,23 @@ Conflicting branches are detected and blocked.
   password). Cloning is anonymous.
 
 ```bash
-git push http://<username>@localhost:3000/my-project.git main
+git push http://<username>@localhost:3000/<username>/my-project.git main
 ```
 
 Extra config: `CRUX_DATA_DIR` (data location), `CRUX_SECRET` (session signing
 key; auto-generated and persisted if unset).
-- [ ] Branches & tags
-- [ ] Pull requests
-- [ ] Users & authentication
-- [ ] Issues
 
-You can now actually use thecrux as a git remote:
+### Repositories are owner-namespaced
+
+Every repo lives under its owner: the web URL is `/:owner/:repo` and the git
+remote is `/:owner/:repo.git`. A user page at `/:owner` lists that owner's
+repos. On disk, repos are stored at `data/repos/<owner>/<name>.git`; legacy
+flat repos are migrated into the `legacy/` namespace automatically on startup.
 
 ```bash
-git remote add origin http://localhost:3000/my-project.git
+git remote add origin http://localhost:3000/<username>/my-project.git
 git push -u origin main
-git clone http://localhost:3000/my-project.git
+git clone http://localhost:3000/<username>/my-project.git
 ```
 
 ## Tech stack

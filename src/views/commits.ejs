@@ -15,7 +15,7 @@
   <ul class="commitlog" role="list">
     <% page.commits.forEach(function (c) { %>
       <li class="commitrow" data-nav-item data-name="<%= c.subject.toLowerCase() %>">
-        <a class="commitrow-hit" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= c.hash %>">
+        <a class="commitrow-hit" href="<%= repoBase(repo) %>/commit/<%= c.hash %>">
           <span class="commitrow-body">
             <span class="commitrow-subject"><%= c.subject %></span>
             <span class="commitrow-meta"><%= c.author %> · <%= relativeTime(c.date) %></span>

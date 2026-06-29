@@ -1,9 +1,10 @@
 import { app } from "./app.js";
 import { config } from "./config.js";
-import { ensureReposDir } from "./git/repos.js";
+import { ensureReposDir, migrateFlatRepos } from "./git/repos.js";
 
 async function main() {
   await ensureReposDir();
+  await migrateFlatRepos();
   app.listen(config.port, config.host, () => {
     console.log(`${config.appName} running at http://${config.host}:${config.port}`);
     console.log(`Repositories stored in ${config.reposDir}`);

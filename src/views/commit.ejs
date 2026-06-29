@@ -16,12 +16,12 @@
     <span class="muted">committed <%= relativeTime(commit.date) %></span>
   </div>
   <div class="commit-refs">
-    <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= commit.hash %>"><%= commit.shortHash %></a>
+    <a class="commit-hash" href="<%= repoBase(repo) %>/commit/<%= commit.hash %>"><%= commit.shortHash %></a>
     <% commit.parents.forEach(function (p) { %>
       <span class="muted">parent</span>
-      <a class="commit-parent" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= p %>"><%= p.slice(0, 7) %></a>
+      <a class="commit-parent" href="<%= repoBase(repo) %>/commit/<%= p %>"><%= p.slice(0, 7) %></a>
     <% }); %>
-    <a class="commit-browse" href="/<%= encodeURIComponent(repo.name) %>/tree/<%= commit.hash %>">browse tree →</a>
+    <a class="commit-browse" href="<%= repoBase(repo) %>/tree/<%= commit.hash %>">browse tree →</a>
   </div>
 </div>
 

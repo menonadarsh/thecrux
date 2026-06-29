@@ -32,7 +32,7 @@
   }
 %>
 
-<form class="compare-bar" method="get" action="/<%= encodeURIComponent(repo.name) %>/pulls/new">
+<form class="compare-bar" method="get" action="<%= repoBase(repo) %>/pulls/new">
   <span class="compare-label">base</span>
   <select class="ref-select" name="base"><%- refOptions(base) %></select>
   <span class="compare-arrow">←</span>
@@ -55,7 +55,7 @@
       </span>
     </div>
 
-    <form class="form" method="post" action="/<%= encodeURIComponent(repo.name) %>/pulls">
+    <form class="form" method="post" action="<%= repoBase(repo) %>/pulls">
       <input type="hidden" name="base" value="<%= base %>" />
       <input type="hidden" name="head" value="<%= head %>" />
       <label class="field">
@@ -79,7 +79,7 @@
     <ul class="prcommits" role="list">
       <% comparison.commits.forEach(function (c) { %>
         <li class="prcommit">
-          <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= c.hash %>"><%= c.shortHash %></a>
+          <a class="commit-hash" href="<%= repoBase(repo) %>/commit/<%= c.hash %>"><%= c.shortHash %></a>
           <span class="prcommit-subject"><%= c.subject %></span>
           <span class="muted"><%= c.author %></span>
         </li>

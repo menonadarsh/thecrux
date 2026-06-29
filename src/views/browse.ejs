@@ -18,10 +18,10 @@
 
 <% if (commit) { %>
   <div class="commitbar">
-    <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= commit.hash %>"><%= commit.shortHash %></a>
-    <a class="commit-subject" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= commit.hash %>"><%= commit.subject %></a>
+    <a class="commit-hash" href="<%= repoBase(repo) %>/commit/<%= commit.hash %>"><%= commit.shortHash %></a>
+    <a class="commit-subject" href="<%= repoBase(repo) %>/commit/<%= commit.hash %>"><%= commit.subject %></a>
     <span class="commit-meta"><%= commit.author %> · <%= relativeTime(commit.date) %></span>
-    <a class="commit-history" href="/<%= encodeURIComponent(repo.name) %>/commits/<%= encodeURIComponent(ref) %>">history →</a>
+    <a class="commit-history" href="<%= repoBase(repo) %>/commits/<%= encodeURIComponent(ref) %>">history →</a>
   </div>
 <% } %>
 
@@ -29,7 +29,7 @@
   <ul class="tree" role="list">
     <% if (subpath) { %>
       <li class="tree-row tree-up">
-        <a class="tree-hit" href="<%= crumbs.length > 1 && crumbs[crumbs.length - 2].href ? crumbs[crumbs.length - 2].href : '/' + encodeURIComponent(repo.name) + '/tree/' + encodeURIComponent(ref) %>">
+        <a class="tree-hit" href="<%= crumbs.length > 1 && crumbs[crumbs.length - 2].href ? crumbs[crumbs.length - 2].href : repoBase(repo) + '/tree/' + encodeURIComponent(ref) %>">
           <span class="tree-glyph">⤴</span>
           <span class="tree-name">..</span>
         </a>
@@ -37,7 +37,7 @@
     <% } %>
     <% entries.forEach(function (e) { %>
       <li class="tree-row" data-nav-item data-name="<%= e.name.toLowerCase() %>">
-        <a class="tree-hit" href="/<%= encodeURIComponent(repo.name) %>/<%= e.type === 'tree' ? 'tree' : 'blob' %>/<%= encodeURIComponent(ref) %>/<%= encodePath(e.path) %>">
+        <a class="tree-hit" href="<%= repoBase(repo) %>/<%= e.type === 'tree' ? 'tree' : 'blob' %>/<%= encodeURIComponent(ref) %>/<%= encodePath(e.path) %>">
           <span class="tree-glyph <%= e.type %>"><%= e.type === 'tree' ? '▸' : '·' %></span>
           <span class="tree-name <%= e.type %>"><%= e.name %><%= e.type === 'tree' ? '/' : '' %></span>
           <span class="tree-size"><%= e.type === 'blob' ? humanSize(e.size) : '' %></span>

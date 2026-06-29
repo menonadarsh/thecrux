@@ -11,7 +11,7 @@
   <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
 <% } %>
 
-<form class="form form-wide" method="post" action="/<%= encodeURIComponent(repo.name) %>/issues">
+<form class="form form-wide" method="post" action="<%= repoBase(repo) %>/issues">
   <label class="field">
     <span class="field-label">title</span>
     <div class="field-mono">
@@ -26,7 +26,7 @@
   </label>
   <div class="form-actions">
     <button class="kbtn primary" type="submit">create issue</button>
-    <a class="kbtn" href="/<%= encodeURIComponent(repo.name) %>/issues">cancel</a>
+    <a class="kbtn" href="<%= repoBase(repo) %>/issues">cancel</a>
   </div>
 </form>
 

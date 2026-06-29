@@ -13,7 +13,7 @@
     <a class="prfilter-tab <%= filter === 'closed' ? 'is-active' : '' %>" href="?state=closed">✓ <%= counts.closed %> closed</a>
   </div>
   <% if (locals.currentUser) { %>
-    <a class="kbtn primary" href="/<%= encodeURIComponent(repo.name) %>/issues/new">new issue</a>
+    <a class="kbtn primary" href="<%= repoBase(repo) %>/issues/new">new issue</a>
   <% } %>
 </div>
 
@@ -27,7 +27,7 @@
           <%= issue.state === 'closed' ? '✓' : '●' %>
         </span>
         <span class="prrow-body">
-          <a class="prrow-title" href="/<%= encodeURIComponent(repo.name) %>/issues/<%= issue.id %>"><%= issue.title %></a>
+          <a class="prrow-title" href="<%= repoBase(repo) %>/issues/<%= issue.id %>"><%= issue.title %></a>
           <span class="prrow-meta">
             #<%= issue.id %> · @<%= issue.author %> · opened <%= relativeTime(new Date(issue.createdAt)) %>
           </span>

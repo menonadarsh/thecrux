@@ -35,7 +35,7 @@
       <span class="merge-glyph">⇄</span>
       <span>Merged by <strong>@<%= pr.mergedBy %></strong> <%= relativeTime(new Date(pr.mergedAt)) %>
         <% if (pr.mergeCommit) { %>
-          as <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= pr.mergeCommit %>"><%= pr.mergeCommit.slice(0,7) %></a>
+          as <a class="commit-hash" href="<%= repoBase(repo) %>/commit/<%= pr.mergeCommit %>"><%= pr.mergeCommit.slice(0,7) %></a>
         <% } %>
         <%= pr.fastForward ? "(fast-forward)" : "" %>
       </span>
@@ -45,7 +45,7 @@
       <span class="merge-glyph">✕</span>
       <span>Closed without merging.</span>
       <% if (locals.currentUser) { %>
-        <form method="post" action="/<%= encodeURIComponent(repo.name) %>/pulls/<%= pr.id %>/reopen" class="inline-form">
+        <form method="post" action="<%= repoBase(repo) %>/pulls/<%= pr.id %>/reopen" class="inline-form">
           <button class="kbtn" type="submit">reopen</button>
         </form>
       <% } %>
@@ -66,11 +66,11 @@
     <% if (locals.currentUser) { %>
       <div class="merge-actions">
         <% if (merge === 'ff' || merge === 'clean') { %>
-          <form method="post" action="/<%= encodeURIComponent(repo.name) %>/pulls/<%= pr.id %>/merge" class="inline-form">
+          <form method="post" action="<%= repoBase(repo) %>/pulls/<%= pr.id %>/merge" class="inline-form">
             <button class="kbtn primary" type="submit">merge pull request</button>
           </form>
         <% } %>
-        <form method="post" action="/<%= encodeURIComponent(repo.name) %>/pulls/<%= pr.id %>/close" class="inline-form">
+        <form method="post" action="<%= repoBase(repo) %>/pulls/<%= pr.id %>/close" class="inline-form">
           <button class="kbtn" type="submit">close</button>
         </form>
       </div>
@@ -81,7 +81,7 @@
 </div>
 
 <div class="prsection-title">conversation</div>
-<%- include("partials/thread", { comments: comments, postUrl: "/" + encodeURIComponent(repo.name) + "/pulls/" + pr.id + "/comment" }) %>
+<%- include("partials/thread", { comments: comments, postUrl: repoBase(repo) + "/pulls/" + pr.id + "/comment" }) %>
 
 <% if (comparison) { %>
   <div class="prsection-title">
@@ -94,7 +94,7 @@
     <ul class="prcommits" role="list">
       <% comparison.commits.forEach(function (c) { %>
         <li class="prcommit">
-          <a class="commit-hash" href="/<%= encodeURIComponent(repo.name) %>/commit/<%= c.hash %>"><%= c.shortHash %></a>
+          <a class="commit-hash" href="<%= repoBase(repo) %>/commit/<%= c.hash %>"><%= c.shortHash %></a>
           <span class="prcommit-subject"><%= c.subject %></span>
           <span class="muted"><%= c.author %></span>
         </li>

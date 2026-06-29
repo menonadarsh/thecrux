@@ -4,6 +4,7 @@ import {
   createRepo,
   getRepo,
   listRepos,
+  listReposByOwner,
   normalizeRepoName,
   RepoError,
 } from "../src/git/repos.js";
@@ -18,26 +19,40 @@ test("normalizeRepoName accepts valid names and rejects bad ones", () => {
   assert.throws(() => normalizeRepoName("project.git"), RepoError);
 });
 
-test("createRepo creates a bare repo with owner and empty state", async () => {
+test("createRepo creates a bare repo under an owner namespace", async () => {
   const name = uniqueName("repo");
-  const repo = await createRepo(name, "a description", "owner1");
+  const repo = await createRepo("alice", name, "a description");
   assert.equal(repo.name, name);
+  assert.equal(repo.owner, "alice");
+  assert.equal(repo.slug, `alice/${name}`);
   assert.equal(repo.description, "a description");
-  assert.equal(repo.owner, "owner1");
   assert.equal(repo.empty, true);
   assert.equal(repo.defaultBranch, "main");
 });
 
-test("createRepo rejects duplicate names", async () => {
-  const name = uniqueName("repo");
-  await createRepo(name);
-  await assert.rejects(() => createRepo(name), RepoError);
+test("the same name can exist under different owners", async () => {
+  const name = uniqueName("shared");
+  await createRepo("alice", name);
+  await createRepo("bob", name); // must not collide
+  assert.ok(await getRepo(`alice/${name}`));
+  assert.ok(await getRepo(`bob/${name}`));
 });
 
-test("getRepo returns null for unknown repos and listRepos includes created ones", async () => {
+test("createRepo rejects duplicate names within an owner", async () => {
   const name = uniqueName("repo");
-  assert.equal(await getRepo("definitely-not-here-xyz"), null);
-  await createRepo(name);
+  await createRepo("carol", name);
+  await assert.rejects(() => createRepo("carol", name), RepoError);
+});
+
+test("getRepo and listRepos resolve by slug", async () => {
+  const name = uniqueName("repo");
+  assert.equal(await getRepo("nobody/missing-xyz"), null);
+  assert.equal(await getRepo("not-a-slug"), null); // needs owner/name
+  await createRepo("dave", name);
+
   const all = await listRepos();
-  assert.ok(all.some((r) => r.name === name));
+  assert.ok(all.some((r) => r.slug === `dave/${name}`));
+
+  const mine = await listReposByOwner("dave");
+  assert.ok(mine.some((r) => r.name === name));
 });

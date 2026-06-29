@@ -55,8 +55,8 @@ after(async () => {
 
 test("upload-pack ref advertisement is served (anonymous)", async () => {
   const repo = uniqueName("clone");
-  await createRepo(repo);
-  const res = await fetch(`${srv.base}/${repo}.git/info/refs?service=git-upload-pack`);
+  await createRepo(username, repo);
+  const res = await fetch(`${srv.base}/${username}/${repo}.git/info/refs?service=git-upload-pack`);
   assert.equal(res.status, 200);
   assert.match(res.headers.get("content-type") ?? "", /x-git-upload-pack-advertisement/);
   assert.match(await res.text(), /# service=git-upload-pack/);
@@ -64,39 +64,40 @@ test("upload-pack ref advertisement is served (anonymous)", async () => {
 
 test("receive-pack advertisement requires auth", async () => {
   const repo = uniqueName("push");
-  await createRepo(repo);
+  await createRepo(username, repo);
+  const refsUrl = `${srv.base}/${username}/${repo}.git/info/refs?service=git-receive-pack`;
 
-  const anon = await fetch(`${srv.base}/${repo}.git/info/refs?service=git-receive-pack`);
+  const anon = await fetch(refsUrl);
   assert.equal(anon.status, 401);
   assert.match(anon.headers.get("www-authenticate") ?? "", /Basic/);
 
   const authz = "Basic " + Buffer.from(`${username}:${password}`).toString("base64");
-  const ok = await fetch(`${srv.base}/${repo}.git/info/refs?service=git-receive-pack`, {
-    headers: { authorization: authz },
-  });
+  const ok = await fetch(refsUrl, { headers: { authorization: authz } });
   assert.equal(ok.status, 200);
 });
 
 test("authenticated push then anonymous clone round-trips", async () => {
   const repo = uniqueName("rt");
-  await createRepo(repo);
+  await createRepo(username, repo);
 
   const work = tmpdir();
   await makeCommit(work, "hello.txt", "hi from a push\n", "initial");
-  const authUrl = `http://${username}:${password}@127.0.0.1:${srv.port}/${repo}.git`;
+  const authUrl = `http://${username}:${password}@127.0.0.1:${srv.port}/${username}/${repo}.git`;
   await git(work, ["push", "-q", authUrl, "main"]);
 
   const dest = tmpdir();
-  await git(dest, ["clone", "-q", `${srv.base}/${repo}.git`, "out"]);
+  await git(dest, ["clone", "-q", `${srv.base}/${username}/${repo}.git`, "out"]);
   const content = fs.readFileSync(path.join(dest, "out", "hello.txt"), "utf8");
   assert.match(content, /hi from a push/);
 });
 
 test("anonymous push is rejected", async () => {
   const repo = uniqueName("noauth");
-  await createRepo(repo);
+  await createRepo(username, repo);
 
   const work = tmpdir();
   await makeCommit(work, "x.txt", "x\n", "x");
-  await assert.rejects(() => git(work, ["push", "-q", `${srv.base}/${repo}.git`, "main"]));
+  await assert.rejects(() =>
+    git(work, ["push", "-q", `${srv.base}/${username}/${repo}.git`, "main"]),
+  );
 });

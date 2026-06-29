@@ -3,14 +3,17 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { config } from "../config.js";
+import { isValidOwner, isValidRepoName, parseRepoRef, repoDirFor } from "./exec.js";
 
 const execFileAsync = promisify(execFile);
 
 export interface RepoSummary {
   name: string;
+  /** Owner (namespace) the repo lives under. */
+  owner: string;
+  /** Convenience "owner/name" identifier. */
+  slug: string;
   description: string;
-  /** Username of the account that created the repo, or null (legacy/anon). */
-  owner: string | null;
   /** Whether the repo has any commits yet. */
   empty: boolean;
   /** Default branch name, or null if empty. */
@@ -25,25 +28,30 @@ export class RepoError extends Error {
   }
 }
 
-const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+/** Owner used for legacy flat repos migrated into the namespaced layout. */
+const LEGACY_OWNER = "legacy";
 
 /** Validate a repository name and return its normalized form. */
 export function normalizeRepoName(raw: string): string {
   const name = raw.trim();
-  if (!NAME_RE.test(name)) {
+  if (name.endsWith(".git")) {
+    throw new RepoError("Repository name should not include the '.git' suffix.");
+  }
+  if (!isValidRepoName(name)) {
     throw new RepoError(
       "Invalid repository name. Use letters, numbers, '.', '_' or '-' (max 100 chars).",
     );
   }
-  if (name.endsWith(".git")) {
-    throw new RepoError("Repository name should not include the '.git' suffix.");
-  }
   return name;
 }
 
-/** Absolute path to a repo's bare git directory (`<name>.git`). */
-function repoPath(name: string): string {
-  return path.join(config.reposDir, `${name}.git`);
+/** Validate an owner/username and return its normalized form. */
+export function normalizeOwner(raw: string): string {
+  const owner = raw.trim();
+  if (!isValidOwner(owner)) {
+    throw new RepoError("Invalid owner name.");
+  }
+  return owner;
 }
 
 async function git(cwd: string, args: string[]): Promise<string> {
@@ -65,17 +73,18 @@ export async function ensureReposDir(): Promise<void> {
   await fs.mkdir(config.reposDir, { recursive: true });
 }
 
-/** Create a new bare repository, optionally owned by a user. */
+/** Create a new bare repository under an owner's namespace. */
 export async function createRepo(
+  rawOwner: string,
   rawName: string,
   description = "",
-  owner: string | null = null,
 ): Promise<RepoSummary> {
+  const owner = normalizeOwner(rawOwner);
   const name = normalizeRepoName(rawName);
-  const dir = repoPath(name);
+  const dir = repoDirFor(owner, name);
 
   if (await exists(dir)) {
-    throw new RepoError(`A repository named '${name}' already exists.`, 409);
+    throw new RepoError(`A repository named '${owner}/${name}' already exists.`, 409);
   }
 
   await fs.mkdir(dir, { recursive: true });
@@ -85,23 +94,11 @@ export async function createRepo(
   if (description.trim()) {
     await fs.writeFile(path.join(dir, "description"), `${description.trim()}\n`, "utf8");
   }
-  if (owner) {
-    await fs.writeFile(path.join(dir, "crux-owner"), `${owner}\n`, "utf8");
-  }
+  await fs.writeFile(path.join(dir, "crux-owner"), `${owner}\n`, "utf8");
   // Allow dumb-HTTP fetch as a fallback and keep server info fresh.
   await git(dir, ["update-server-info"]).catch(() => {});
 
-  return (await getRepo(name))!;
-}
-
-/** Read the recorded owner username for a repo, if any. */
-async function readOwner(dir: string): Promise<string | null> {
-  try {
-    const text = (await fs.readFile(path.join(dir, "crux-owner"), "utf8")).trim();
-    return text || null;
-  } catch {
-    return null;
-  }
+  return (await getRepo(`${owner}/${name}`))!;
 }
 
 /** Read the description file for a repo, if meaningful. */
@@ -118,7 +115,6 @@ async function readDescription(dir: string): Promise<string> {
 
 /** Resolve the default branch (HEAD) and whether the repo has commits. */
 async function readHead(dir: string): Promise<{ defaultBranch: string | null; empty: boolean }> {
-  // HEAD symbolic ref, e.g. "refs/heads/main".
   let defaultBranch: string | null = null;
   try {
     const ref = (await git(dir, ["symbolic-ref", "HEAD"])).trim();
@@ -138,37 +134,94 @@ async function readHead(dir: string): Promise<{ defaultBranch: string | null; em
   return { defaultBranch, empty };
 }
 
-/** Fetch a single repo's summary, or null if it does not exist. */
-export async function getRepo(name: string): Promise<RepoSummary | null> {
-  let cleanName: string;
-  try {
-    cleanName = normalizeRepoName(name);
-  } catch {
-    return null;
-  }
-  const dir = repoPath(cleanName);
+/** Fetch a single repo's summary by "owner/name" slug, or null. */
+export async function getRepo(slug: string): Promise<RepoSummary | null> {
+  const ref = parseRepoRef(slug);
+  if (!ref) return null;
+  const dir = repoDirFor(ref.owner, ref.name);
   if (!(await exists(dir))) return null;
 
-  const [{ defaultBranch, empty }, description, owner, stat] = await Promise.all([
+  const [{ defaultBranch, empty }, description, stat] = await Promise.all([
     readHead(dir),
     readDescription(dir),
-    readOwner(dir),
     fs.stat(dir),
   ]);
 
-  return { name: cleanName, description, owner, empty, defaultBranch, updatedAt: stat.mtime };
+  return {
+    name: ref.name,
+    owner: ref.owner,
+    slug: `${ref.owner}/${ref.name}`,
+    description,
+    empty,
+    defaultBranch,
+    updatedAt: stat.mtime,
+  };
+}
+
+/** List the repos owned by a single owner. */
+export async function listReposByOwner(owner: string): Promise<RepoSummary[]> {
+  if (!isValidOwner(owner)) return [];
+  const ownerDir = path.join(config.reposDir, owner);
+  let entries;
+  try {
+    entries = await fs.readdir(ownerDir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const names = entries
+    .filter((e) => e.isDirectory() && e.name.endsWith(".git"))
+    .map((e) => e.name.replace(/\.git$/, ""));
+  const repos = await Promise.all(names.map((n) => getRepo(`${owner}/${n}`)));
+  return repos
+    .filter((r): r is RepoSummary => r !== null)
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 }
 
 /** List all hosted repositories, most recently updated first. */
 export async function listRepos(): Promise<RepoSummary[]> {
   await ensureReposDir();
-  const entries = await fs.readdir(config.reposDir, { withFileTypes: true });
-  const names = entries
-    .filter((e) => e.isDirectory() && e.name.endsWith(".git"))
-    .map((e) => e.name.replace(/\.git$/, ""));
+  const owners = await fs.readdir(config.reposDir, { withFileTypes: true });
+  const ownerNames = owners
+    .filter((e) => e.isDirectory() && !e.name.endsWith(".git") && isValidOwner(e.name))
+    .map((e) => e.name);
 
-  const repos = await Promise.all(names.map((n) => getRepo(n)));
-  return repos
-    .filter((r): r is RepoSummary => r !== null)
+  const lists = await Promise.all(ownerNames.map((o) => listReposByOwner(o)));
+  return lists
+    .flat()
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+/**
+ * One-time migration: relocate legacy flat repos (`<reposDir>/<name>.git`) into
+ * the namespaced layout (`<reposDir>/<owner>/<name>.git`). The owner comes from
+ * the repo's `crux-owner` file, falling back to "legacy". Idempotent.
+ */
+export async function migrateFlatRepos(): Promise<void> {
+  await ensureReposDir();
+  let entries;
+  try {
+    entries = await fs.readdir(config.reposDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.endsWith(".git")) continue;
+    const name = entry.name.replace(/\.git$/, "");
+    if (!isValidRepoName(name)) continue;
+    const flatDir = path.join(config.reposDir, entry.name);
+
+    let owner = LEGACY_OWNER;
+    try {
+      const recorded = (await fs.readFile(path.join(flatDir, "crux-owner"), "utf8")).trim();
+      if (recorded && isValidOwner(recorded)) owner = recorded;
+    } catch {
+      // no recorded owner — use legacy
+    }
+
+    const targetDir = repoDirFor(owner, name);
+    if (await exists(targetDir)) continue; // would collide; leave as-is
+    await fs.mkdir(path.dirname(targetDir), { recursive: true });
+    await fs.rename(flatDir, targetDir);
+    console.log(`migrated repo '${name}' -> '${owner}/${name}'`);
+  }
 }

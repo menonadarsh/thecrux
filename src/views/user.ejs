@@ -1,0 +1,47 @@
+<%- include("partials/header", { title: owner, crumb: "~/" + owner }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">ls ~<%= owner %></span>
+  <span class="termline-meta"><%= repos.length %> <%= repos.length === 1 ? "repository" : "repositories" %></span>
+</section>
+
+<div class="page-head">
+  <h1 class="user-name"><span class="user-glyph">●</span> <%= displayName %></h1>
+  <p class="muted">@<%= owner %></p>
+</div>
+
+<% if (repos.length === 0) { %>
+  <div class="blank"><p class="muted">No repositories under @<%= owner %>.</p></div>
+<% } else { %>
+  <ul class="repos" role="list">
+    <% repos.forEach(function (repo) { %>
+      <li class="repo" data-nav-item data-name="<%= repo.name.toLowerCase() %>">
+        <a class="repo-hit" href="<%= repoBase(repo) %>">
+          <span class="repo-spine"></span>
+          <span class="repo-body">
+            <span class="repo-line">
+              <span class="repo-name"><%= repo.name %></span>
+              <% if (repo.empty) { %>
+                <span class="tag tag-empty">empty</span>
+              <% } else { %>
+                <span class="tag tag-branch"><%= repo.defaultBranch %></span>
+              <% } %>
+            </span>
+            <% if (repo.description) { %>
+              <span class="repo-desc"><%= repo.description %></span>
+            <% } else { %>
+              <span class="repo-desc muted">no description</span>
+            <% } %>
+          </span>
+          <span class="repo-aside">
+            <span class="repo-time"><%= repo.updatedAt.toLocaleDateString() %></span>
+            <span class="repo-go">↵</span>
+          </span>
+        </a>
+      </li>
+    <% }); %>
+  </ul>
+<% } %>
+
+<%- include("partials/footer") %>
