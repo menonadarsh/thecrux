@@ -1,4 +1,5 @@
 import { Router, type Request } from "express";
+import { canWrite } from "../auth/access.js";
 import { requireAuth } from "../auth/middleware.js";
 import { compareRefs, mergeability, mergeRefs } from "../git/compare.js";
 import { listRefNames } from "../git/refs.js";
@@ -157,6 +158,7 @@ pullsRouter.get("/:owner/:name/pulls/:id", async (req, res, next) => {
       merge,
       markdownBody: pr.body ? renderMarkdown(pr.body) : "",
       comments: renderComments(pr.comments),
+      canWrite: canWrite(repo.slug, req.currentUser?.username),
       repobar: repobar(repo, branches.length, tags.length, countOpenPulls(repo.slug)),
     });
   } catch (err) {
@@ -194,6 +196,10 @@ pullsRouter.post("/:owner/:name/pulls/:id/merge", requireAuth, async (req, res, 
       return;
     }
     const user = req.currentUser!;
+    if (!canWrite(repo.slug, user.username)) {
+      res.status(403).render("error", { message: "You do not have write access to merge this pull request." });
+      return;
+    }
     const message = `Merge pull request #${pr.id}: ${pr.title}`;
     const result = await mergeRefs(repo.slug, pr.base, pr.head, message, {
       name: user.displayName || user.username,
@@ -210,6 +216,7 @@ pullsRouter.post("/:owner/:name/pulls/:id/merge", requireAuth, async (req, res, 
         merge,
         markdownBody: pr.body ? renderMarkdown(pr.body) : "",
         comments: renderComments(pr.comments),
+        canWrite: canWrite(repo.slug, user.username),
         mergeError: result.conflict
           ? "This pull request has conflicts and can't be merged automatically."
           : `Could not merge: ${result.reason ?? "unknown error"}.`,
@@ -237,7 +244,8 @@ pullsRouter.post("/:owner/:name/pulls/:id/close", requireAuth, async (req, res, 
     if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
     const id = Number(req.params.id);
     const pr = Number.isInteger(id) ? getPull(repo.slug, id) : null;
-    if (pr && pr.state === "open") {
+    const user = req.currentUser!.username;
+    if (pr && pr.state === "open" && (canWrite(repo.slug, user) || pr.author === user)) {
       await updatePull(repo.slug, id, { state: "closed", closedAt: new Date().toISOString() });
     }
     res.redirect(`${base(repo)}/pulls/${id}`);
@@ -252,7 +260,8 @@ pullsRouter.post("/:owner/:name/pulls/:id/reopen", requireAuth, async (req, res,
     if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
     const id = Number(req.params.id);
     const pr = Number.isInteger(id) ? getPull(repo.slug, id) : null;
-    if (pr && pr.state === "closed") {
+    const user = req.currentUser!.username;
+    if (pr && pr.state === "closed" && (canWrite(repo.slug, user) || pr.author === user)) {
       await updatePull(repo.slug, id, { state: "open", closedAt: undefined });
     }
     res.redirect(`${base(repo)}/pulls/${id}`);

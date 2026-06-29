@@ -1,4 +1,5 @@
 import { Router, type Request } from "express";
+import { canWrite } from "../auth/access.js";
 import { requireAuth } from "../auth/middleware.js";
 import { listRefNames } from "../git/refs.js";
 import { getRepo, type RepoSummary } from "../git/repos.js";
@@ -120,6 +121,7 @@ issuesRouter.get("/:owner/:name/issues/:id", async (req, res, next) => {
       issue,
       bodyHtml: issue.body ? renderMarkdown(issue.body) : "",
       comments: renderComments(issue.comments),
+      canWrite: canWrite(repo.slug, req.currentUser?.username),
       repobar: repobar(repo, branches.length, tags.length, countOpenIssues(repo.slug)),
     });
   } catch (err) {
@@ -150,13 +152,14 @@ issuesRouter.post("/:owner/:name/issues/:id/close", requireAuth, async (req, res
     if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
     const id = Number(req.params.id);
     const issue = Number.isInteger(id) ? getIssue(repo.slug, id) : null;
-    if (issue && issue.state === "open") {
+    const user = req.currentUser!.username;
+    if (issue && issue.state === "open" && (canWrite(repo.slug, user) || issue.author === user)) {
       const body = String(req.body.body ?? "");
-      if (body.trim()) await addIssueComment(repo.slug, id, req.currentUser!.username, body);
+      if (body.trim()) await addIssueComment(repo.slug, id, user, body);
       await updateIssue(repo.slug, id, {
         state: "closed",
         closedAt: new Date().toISOString(),
-        closedBy: req.currentUser!.username,
+        closedBy: user,
       });
     }
     res.redirect(`${base(repo)}/issues/${id}#bottom`);
@@ -171,7 +174,8 @@ issuesRouter.post("/:owner/:name/issues/:id/reopen", requireAuth, async (req, re
     if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
     const id = Number(req.params.id);
     const issue = Number.isInteger(id) ? getIssue(repo.slug, id) : null;
-    if (issue && issue.state === "closed") {
+    const user = req.currentUser!.username;
+    if (issue && issue.state === "closed" && (canWrite(repo.slug, user) || issue.author === user)) {
       await updateIssue(repo.slug, id, { state: "open", closedAt: undefined, closedBy: undefined });
     }
     res.redirect(`${base(repo)}/issues/${id}#bottom`);

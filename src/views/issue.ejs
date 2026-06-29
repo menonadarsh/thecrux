@@ -33,7 +33,7 @@
 
 <%- include("partials/thread", { comments: comments, postUrl: repoBase(repo) + "/issues/" + issue.id + "/comment" }) %>
 
-<% if (locals.currentUser) { %>
+<% if (locals.currentUser && (canWrite || currentUser.username === issue.author)) { %>
   <div class="state-actions">
     <% if (issue.state === 'open') { %>
       <form method="post" action="<%= repoBase(repo) %>/issues/<%= issue.id %>/close" class="inline-form">

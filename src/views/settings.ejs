@@ -1,0 +1,45 @@
+<%- include("partials/header", { title: "settings · " + repo.name, crumb: "~/repos/" + repo.slug + "/settings" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">settings</span>
+</section>
+
+<%- include("partials/repobar") %>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><span class="card-title">collaborators</span></div>
+  <div class="settings-body">
+    <p class="muted">The owner <span class="ref-chip">@<%= repo.owner %></span> has full access.
+      Collaborators can push and merge.</p>
+
+    <ul class="collab-list">
+      <% if (collaborators.length === 0) { %>
+        <li class="muted">No collaborators yet.</li>
+      <% } %>
+      <% collaborators.forEach(function (c) { %>
+        <li class="collab-row">
+          <span class="collab-name"><span class="user-glyph">●</span> @<%= c %></span>
+          <form method="post" action="<%= repoBase(repo) %>/settings/collaborators/remove" class="inline-form">
+            <input type="hidden" name="username" value="<%= c %>" />
+            <button class="kbtn" type="submit">remove</button>
+          </form>
+        </li>
+      <% }); %>
+    </ul>
+
+    <form class="collab-add" method="post" action="<%= repoBase(repo) %>/settings/collaborators">
+      <div class="field-mono">
+        <span class="field-prefix">@</span>
+        <input type="text" name="username" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false" required />
+      </div>
+      <button class="kbtn primary" type="submit">add collaborator</button>
+    </form>
+  </div>
+</section>
+
+<%- include("partials/footer") %>

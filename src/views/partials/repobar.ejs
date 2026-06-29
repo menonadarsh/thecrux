@@ -60,5 +60,8 @@
     <a class="repotab <%= rbActive === 'pulls' ? 'is-active' : '' %>" href="<%= rbBase %>/pulls">pulls<% if (rb.pullCount != null) { %> <span class="repotab-count"><%= rb.pullCount %></span><% } %></a>
     <a class="repotab <%= rbActive === 'branches' ? 'is-active' : '' %>" href="<%= rbBase %>/branches">branches<% if (rb.branchCount != null) { %> <span class="repotab-count"><%= rb.branchCount %></span><% } %></a>
     <a class="repotab <%= rbActive === 'tags' ? 'is-active' : '' %>" href="<%= rbBase %>/tags">tags<% if (rb.tagCount != null) { %> <span class="repotab-count"><%= rb.tagCount %></span><% } %></a>
+    <% if (locals.currentUser && currentUser.username === rbRepo.owner) { %>
+      <a class="repotab <%= rbActive === 'settings' ? 'is-active' : '' %>" href="<%= rbBase %>/settings">settings</a>
+    <% } %>
   </nav>
 </div>

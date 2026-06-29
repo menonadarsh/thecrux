@@ -1160,3 +1160,23 @@ a.commit-subject { color: var(--text); }
 .comment-form .field-mono { margin-bottom: 10px; }
 
 .state-actions { margin-top: 4px; }
+
+/* ============================================================
+   Repo settings / collaborators (v0.10)
+   ============================================================ */
+.settings-body { padding: 16px; }
+.settings-body > p { margin: 0 0 16px; }
+.collab-list { list-style: none; margin: 0 0 18px; padding: 0; }
+.collab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-inset);
+  margin-bottom: 8px;
+}
+.collab-name { color: var(--text); }
+.collab-add { display: flex; gap: 10px; align-items: stretch; max-width: 460px; }
+.collab-add .field-mono { flex: 1; }

@@ -2,22 +2,36 @@ import { spawn, execFile } from "node:child_process";
 import { promisify } from "node:util";
 import zlib from "node:zlib";
 import { Router, type Request, type Response } from "express";
+import { canWrite } from "../auth/access.js";
 import { checkBasicAuth } from "../auth/middleware.js";
 import { repoDir } from "./exec.js";
 
 const execFileAsync = promisify(execFile);
 
 /**
- * Pushing (receive-pack) requires authentication. Returns true if the request
- * is allowed to proceed; otherwise it sends a 401 and returns false. Cloning
- * (upload-pack) is left anonymous.
+ * Pushing (receive-pack) requires authentication AND write access to the repo.
+ * Returns true if allowed; otherwise sends 401 (no/invalid credentials) or 403
+ * (authenticated but lacks write access) and returns false. Cloning is
+ * left anonymous.
  */
-function authorizePush(req: Request, res: Response): boolean {
+function authorizePush(req: Request, res: Response, slug: string): boolean {
   const user = checkBasicAuth(req.headers.authorization);
-  if (user) return true;
-  res.setHeader("WWW-Authenticate", 'Basic realm="thecrux"');
-  res.status(401).send("Authentication required to push.");
-  return false;
+  if (!user) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="thecrux"');
+    res.status(401).send("Authentication required to push.");
+    return false;
+  }
+  if (!canWrite(slug, user.username)) {
+    res.status(403).send("You do not have write access to this repository.");
+    return false;
+  }
+  return true;
+}
+
+/** Build the "owner/name" slug from request params (repo may end in .git). */
+function slugFromReq(req: Request): string {
+  const repo = String(req.params.repo).replace(/\.git$/, "");
+  return `${req.params.owner}/${repo}`;
 }
 
 /**
@@ -91,8 +105,8 @@ gitHttpRouter.get("/:owner/:repo/info/refs", (req: Request, res: Response) => {
     res.status(400).send("thecrux only supports the git smart HTTP protocol");
     return;
   }
-  // Pushing must be authenticated, including this advertisement request.
-  if (service === "git-receive-pack" && !authorizePush(req, res)) return;
+  // Pushing must be authenticated + authorized, including this advertisement.
+  if (service === "git-receive-pack" && !authorizePush(req, res, slugFromReq(req))) return;
 
   const dir = resolveRepoDir(String(req.params.owner), String(req.params.repo));
   if (!dir) {
@@ -120,7 +134,7 @@ gitHttpRouter.get("/:owner/:repo/info/refs", (req: Request, res: Response) => {
 /** Build a POST handler that streams a request through a git RPC process. */
 function rpcHandler(service: string) {
   return (req: Request, res: Response) => {
-    if (service === "git-receive-pack" && !authorizePush(req, res)) return;
+    if (service === "git-receive-pack" && !authorizePush(req, res, slugFromReq(req))) return;
 
     const dir = resolveRepoDir(String(req.params.owner), String(req.params.repo));
     if (!dir) {

@@ -38,6 +38,15 @@ Conflicting branches are detected and blocked.
 - **`git push` requires authentication** (HTTP Basic, your crux username +
   password). Cloning is anonymous.
 
+### Access control
+
+Each repo has an **owner** (its namespace) with full/admin rights and a list of
+**collaborators** with write access, managed on the repo's `/settings` page
+(owner only). Browsing and cloning are public; **write actions** — `git push`,
+merging pull requests, and closing/reopening issues & PRs — require write
+access (an author may always close/reopen their own issue or PR). Push without
+access returns `403`.
+
 ```bash
 git push http://<username>@localhost:3000/<username>/my-project.git main
 ```

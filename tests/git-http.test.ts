@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
 import { promisify } from "node:util";
+import { addCollaborator } from "../src/auth/access.js";
 import { createUser } from "../src/auth/users.js";
 import { createRepo } from "../src/git/repos.js";
 import { startServer, uniqueName, type TestServer } from "./helpers.js";
@@ -100,4 +101,23 @@ test("anonymous push is rejected", async () => {
   await assert.rejects(() =>
     git(work, ["push", "-q", `${srv.base}/${username}/${repo}.git`, "main"]),
   );
+});
+
+test("pushing to another owner's repo is rejected until granted access", async () => {
+  // A repo owned by someone else; our authenticated user is not a collaborator.
+  const otherOwner = uniqueName("owner").replace(/-/g, "");
+  await createUser(otherOwner, "correcthorse");
+  const repo = uniqueName("perm");
+  await createRepo(otherOwner, repo);
+
+  const work = tmpdir();
+  await makeCommit(work, "x.txt", "x\n", "x");
+  const url = `http://${username}:${password}@127.0.0.1:${srv.port}/${otherOwner}/${repo}.git`;
+
+  // Valid credentials but no write access -> rejected.
+  await assert.rejects(() => git(work, ["push", "-q", url, "main"]));
+
+  // After being added as a collaborator, the push succeeds.
+  await addCollaborator(`${otherOwner}/${repo}`, username);
+  await git(work, ["push", "-q", url, "main"]);
 });

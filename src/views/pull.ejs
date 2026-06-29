@@ -44,7 +44,7 @@
     <div class="merge-line">
       <span class="merge-glyph">✕</span>
       <span>Closed without merging.</span>
-      <% if (locals.currentUser) { %>
+      <% if (canWrite || (currentUser && currentUser.username === pr.author)) { %>
         <form method="post" action="<%= repoBase(repo) %>/pulls/<%= pr.id %>/reopen" class="inline-form">
           <button class="kbtn" type="submit">reopen</button>
         </form>
@@ -64,18 +64,24 @@
       <% } %>
     </div>
     <% if (locals.currentUser) { %>
+      <% var mayClose = canWrite || currentUser.username === pr.author; %>
       <div class="merge-actions">
-        <% if (merge === 'ff' || merge === 'clean') { %>
+        <% if (canWrite && (merge === 'ff' || merge === 'clean')) { %>
           <form method="post" action="<%= repoBase(repo) %>/pulls/<%= pr.id %>/merge" class="inline-form">
             <button class="kbtn primary" type="submit">merge pull request</button>
           </form>
         <% } %>
-        <form method="post" action="<%= repoBase(repo) %>/pulls/<%= pr.id %>/close" class="inline-form">
-          <button class="kbtn" type="submit">close</button>
-        </form>
+        <% if (mayClose) { %>
+          <form method="post" action="<%= repoBase(repo) %>/pulls/<%= pr.id %>/close" class="inline-form">
+            <button class="kbtn" type="submit">close</button>
+          </form>
+        <% } %>
+        <% if (!canWrite && !mayClose) { %>
+          <span class="muted">You have read-only access to this repository.</span>
+        <% } %>
       </div>
     <% } else { %>
-      <p class="muted"><a href="/login">Sign in</a> to merge or close.</p>
+      <p class="muted"><a href="/login">Sign in</a> to comment.</p>
     <% } %>
   <% } %>
 </div>

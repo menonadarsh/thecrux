@@ -20,6 +20,12 @@ import {
 } from "../git/tree.js";
 import { isValidOwner } from "../git/exec.js";
 import { getUser } from "../auth/users.js";
+import {
+  addCollaborator,
+  isOwner,
+  listCollaborators,
+  removeCollaborator,
+} from "../auth/access.js";
 import { highlightFile } from "../render/highlight.js";
 import { isMarkdown, renderMarkdown } from "../render/markdown.js";
 
@@ -399,6 +405,88 @@ reposRouter.get("/:owner/:name/commit/:sha", async (req, res, next) => {
     next(err);
   }
 });
+
+/** Build the settings view, with an optional error message. */
+async function renderSettings(
+  req: Request,
+  res: Response,
+  repo: RepoSummary,
+  error: string | null = null,
+  status = 200,
+): Promise<void> {
+  const refNames = await listRefNames(repo.slug);
+  res.status(status).render("settings", {
+    repo,
+    collaborators: listCollaborators(repo.slug),
+    error,
+    repobar: {
+      repo,
+      ref: repo.defaultBranch ?? "main",
+      active: "settings",
+      branchCount: refNames.branches.length,
+      tagCount: refNames.tags.length,
+    },
+  });
+}
+
+/** Gate a settings action: must be signed in AND the repo owner. */
+async function requireOwner(req: Request, res: Response): Promise<RepoSummary | null> {
+  const repo = await getRepo(slugOf(req));
+  if (!repo) {
+    res.status(404).render("404", { name: slugOf(req) });
+    return null;
+  }
+  if (!isOwner(repo.slug, req.currentUser?.username)) {
+    res.status(403).render("error", { message: "Only the repository owner can change settings." });
+    return null;
+  }
+  return repo;
+}
+
+// Repository settings (owner only) — manage collaborators.
+reposRouter.get("/:owner/:name/settings", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    await renderSettings(req, res, repo);
+  } catch (err) {
+    next(err);
+  }
+});
+
+reposRouter.post("/:owner/:name/settings/collaborators", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    const username = String(req.body.username ?? "").trim();
+    if (!username) return void (await renderSettings(req, res, repo, "Enter a username.", 400));
+    if (!getUser(username)) {
+      return void (await renderSettings(req, res, repo, `No such user '${username}'.`, 400));
+    }
+    if (isOwner(repo.slug, username)) {
+      return void (await renderSettings(req, res, repo, "The owner already has full access.", 400));
+    }
+    await addCollaborator(repo.slug, getUser(username)!.username);
+    res.redirect(`${base(repo)}/settings`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+reposRouter.post(
+  "/:owner/:name/settings/collaborators/remove",
+  requireAuth,
+  async (req, res, next) => {
+    try {
+      const repo = await requireOwner(req, res);
+      if (!repo) return;
+      await removeCollaborator(repo.slug, String(req.body.username ?? ""));
+      res.redirect(`${base(repo)}/settings`);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // Serve raw file bytes.
 reposRouter.get("/:owner/:name/raw/:ref/*", async (req, res, next) => {
