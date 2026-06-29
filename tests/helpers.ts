@@ -1,9 +1,54 @@
 import { execFileSync } from "node:child_process";
+import type { AddressInfo } from "node:net";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { app } from "../src/app.js";
 import { config } from "../src/config.js";
 import { createRepo } from "../src/git/repos.js";
+
+export interface TestServer {
+  base: string;
+  port: number;
+  close: () => Promise<void>;
+}
+
+/** Start the real Express app on an ephemeral port for HTTP-level tests. */
+export async function startServer(): Promise<TestServer> {
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once("listening", resolve));
+  const port = (server.address() as AddressInfo).port;
+  return {
+    base: `http://127.0.0.1:${port}`,
+    port,
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+  };
+}
+
+/** Extract the session cookie value from a response's Set-Cookie header. */
+export function sessionCookie(res: Response): string | null {
+  const raw = res.headers.get("set-cookie");
+  if (!raw) return null;
+  const match = raw.match(/crux_session=([^;]+)/);
+  return match ? `crux_session=${match[1]}` : null;
+}
+
+/** Register a user over HTTP and return the session cookie. */
+export async function registerOverHttp(
+  base: string,
+  username: string,
+  password: string,
+): Promise<string> {
+  const res = await fetch(`${base}/register`, {
+    method: "POST",
+    redirect: "manual",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ username, password }).toString(),
+  });
+  const cookie = sessionCookie(res);
+  if (!cookie) throw new Error(`registration failed (${res.status})`);
+  return cookie;
+}
 
 export interface SeededRepo {
   name: string;
