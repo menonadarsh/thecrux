@@ -20,6 +20,15 @@
   </div>
 </div>
 
+<%- include("partials/meta-edit", {
+  postUrl: repoBase(repo) + "/issues/" + issue.id + "/edit",
+  labelDefs: labels,
+  currentLabels: issue.labels || [],
+  assigneeOptions: assigneeOptions,
+  currentAssignees: issue.assignees || [],
+  canWrite: canWrite,
+}) %>
+
 <!-- Original post -->
 <div class="comment comment-op">
   <div class="comment-head">

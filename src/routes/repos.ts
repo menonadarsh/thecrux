@@ -26,6 +26,13 @@ import {
   listCollaborators,
   removeCollaborator,
 } from "../auth/access.js";
+import {
+  addLabel,
+  isValidColor,
+  isValidLabelName,
+  listLabels,
+  removeLabel,
+} from "../repo/labels.js";
 import { highlightFile } from "../render/highlight.js";
 import { isMarkdown, renderMarkdown } from "../render/markdown.js";
 
@@ -418,6 +425,7 @@ async function renderSettings(
   res.status(status).render("settings", {
     repo,
     collaborators: listCollaborators(repo.slug),
+    labels: listLabels(repo.slug),
     error,
     repobar: {
       repo,
@@ -487,6 +495,36 @@ reposRouter.post(
     }
   },
 );
+
+reposRouter.post("/:owner/:name/settings/labels", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    const name = String(req.body.name ?? "").trim();
+    const color = String(req.body.color ?? "").trim();
+    if (!isValidLabelName(name)) {
+      return void (await renderSettings(req, res, repo, "Invalid label name.", 400));
+    }
+    if (!isValidColor(color)) {
+      return void (await renderSettings(req, res, repo, "Color must be a hex value like #2f81f7.", 400));
+    }
+    await addLabel(repo.slug, name, color);
+    res.redirect(`${base(repo)}/settings`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+reposRouter.post("/:owner/:name/settings/labels/remove", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    await removeLabel(repo.slug, String(req.body.name ?? ""));
+    res.redirect(`${base(repo)}/settings`);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Serve raw file bytes.
 reposRouter.get("/:owner/:name/raw/:ref/*", async (req, res, next) => {

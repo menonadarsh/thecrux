@@ -22,6 +22,8 @@ export interface Issue {
   createdAt: string;
   closedAt?: string;
   closedBy?: string;
+  labels?: string[];
+  assignees?: string[];
   comments: Comment[];
 }
 

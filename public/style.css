@@ -1180,3 +1180,67 @@ a.commit-subject { color: var(--text); }
 .collab-name { color: var(--text); }
 .collab-add { display: flex; gap: 10px; align-items: stretch; max-width: 460px; }
 .collab-add .field-mono { flex: 1; }
+
+/* ============================================================
+   Labels & assignees (v0.11)
+   ============================================================ */
+.label-chip {
+  display: inline-block;
+  padding: 1px 9px;
+  margin: 0 2px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.assignee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text);
+  margin-right: 8px;
+}
+
+.prrow-titleline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* metadata panel (issue/PR detail) */
+.meta-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 24px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-inset);
+  margin-bottom: 16px;
+}
+.meta-section { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.meta-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+.meta-edit { width: 100%; margin-top: 4px; }
+.meta-edit > summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+.meta-edit-group { margin: 12px 0; }
+.meta-edit-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 14px 8px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.check input { accent-color: var(--accent); }
+
+.label-add { align-items: center; }
+.color-input {
+  width: 42px;
+  height: 36px;
+  padding: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+}

@@ -19,7 +19,12 @@ export interface PullRequest {
   mergedBy?: string;
   mergeCommit?: string;
   fastForward?: boolean;
+  /** Base/head commit SHAs captured at merge time, to snapshot the merged diff. */
+  baseSha?: string;
+  headSha?: string;
   closedAt?: string;
+  labels?: string[];
+  assignees?: string[];
   comments?: Comment[];
 }
 

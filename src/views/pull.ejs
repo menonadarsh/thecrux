@@ -21,6 +21,15 @@
   </div>
 </div>
 
+<%- include("partials/meta-edit", {
+  postUrl: repoBase(repo) + "/pulls/" + pr.id + "/edit",
+  labelDefs: labels,
+  currentLabels: pr.labels || [],
+  assigneeOptions: assigneeOptions,
+  currentAssignees: pr.assignees || [],
+  canWrite: canWrite,
+}) %>
+
 <% if (pr.body) { %>
   <div class="card"><div class="md-body"><%- markdownBody %></div></div>
 <% } %>

@@ -27,9 +27,13 @@
           <%= issue.state === 'closed' ? '✓' : '●' %>
         </span>
         <span class="prrow-body">
-          <a class="prrow-title" href="<%= repoBase(repo) %>/issues/<%= issue.id %>"><%= issue.title %></a>
+          <span class="prrow-titleline">
+            <a class="prrow-title" href="<%= repoBase(repo) %>/issues/<%= issue.id %>"><%= issue.title %></a>
+            <%- include("partials/labelchips", { names: issue.labels || [], labelDefs: labels }) %>
+          </span>
           <span class="prrow-meta">
             #<%= issue.id %> · @<%= issue.author %> · opened <%= relativeTime(new Date(issue.createdAt)) %>
+            <% if (issue.assignees && issue.assignees.length) { %>· assigned <%= issue.assignees.map(function(a){return '@'+a;}).join(", ") %><% } %>
           </span>
         </span>
         <% if (issue.comments && issue.comments.length) { %>

@@ -36,6 +36,9 @@ export interface MergeResult {
   conflict?: boolean;
   sha?: string;
   reason?: string;
+  /** Base/head commit SHAs at merge time (for snapshotting the merged diff). */
+  baseSha?: string;
+  headSha?: string;
 }
 
 function parseLog(out: string): CompareCommit[] {
@@ -157,7 +160,7 @@ export async function mergeRefs(
   // Fast-forward when base is an ancestor of head.
   if (await isAncestor(dir, baseSha, headSha)) {
     await gitText(dir, ["update-ref", baseRef, headSha, baseSha]);
-    return { ok: true, fastForward: true, sha: headSha };
+    return { ok: true, fastForward: true, sha: headSha, baseSha, headSha };
   }
 
   // True merge via plumbing: build the merged tree, then a merge commit.
@@ -185,5 +188,5 @@ export async function mergeRefs(
   const commit = (stdout as string).trim();
   await gitText(dir, ["update-ref", baseRef, commit, baseSha]);
   await execFileAsync("git", ["-C", dir, "update-server-info"]).catch(() => {});
-  return { ok: true, fastForward: false, sha: commit };
+  return { ok: true, fastForward: false, sha: commit, baseSha, headSha };
 }

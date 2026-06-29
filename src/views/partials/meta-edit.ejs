@@ -1,0 +1,43 @@
+<% /* params: postUrl, labelDefs, currentLabels, assigneeOptions, currentAssignees, canWrite */ %>
+<div class="meta-panel">
+  <div class="meta-section">
+    <span class="meta-title">labels</span>
+    <% if (currentLabels && currentLabels.length) { %>
+      <%- include("labelchips", { names: currentLabels, labelDefs: labelDefs }) %>
+    <% } else { %><span class="muted">none</span><% } %>
+  </div>
+  <div class="meta-section">
+    <span class="meta-title">assignees</span>
+    <% if (currentAssignees && currentAssignees.length) { %>
+      <% currentAssignees.forEach(function (a) { %><span class="assignee-chip"><span class="user-glyph">●</span> @<%= a %></span><% }); %>
+    <% } else { %><span class="muted">none</span><% } %>
+  </div>
+
+  <% if (canWrite) { %>
+    <details class="meta-edit">
+      <summary>edit labels &amp; assignees</summary>
+      <form method="post" action="<%= postUrl %>">
+        <div class="meta-edit-group">
+          <div class="meta-edit-title">labels</div>
+          <% if (!labelDefs.length) { %><span class="muted">No labels defined. Add some in settings.</span><% } %>
+          <% labelDefs.forEach(function (d) { %>
+            <label class="check">
+              <input type="checkbox" name="labels" value="<%= d.name %>" <%= currentLabels.includes(d.name) ? 'checked' : '' %> />
+              <span class="label-chip" style="color:<%= d.color %>;border-color:<%= d.color %>66;background:<%= d.color %>22"><%= d.name %></span>
+            </label>
+          <% }); %>
+        </div>
+        <div class="meta-edit-group">
+          <div class="meta-edit-title">assignees</div>
+          <% assigneeOptions.forEach(function (a) { %>
+            <label class="check">
+              <input type="checkbox" name="assignees" value="<%= a %>" <%= currentAssignees.includes(a) ? 'checked' : '' %> />
+              @<%= a %>
+            </label>
+          <% }); %>
+        </div>
+        <button class="kbtn primary" type="submit">save</button>
+      </form>
+    </details>
+  <% } %>
+</div>
