@@ -2,7 +2,7 @@ import { spawn, execFile } from "node:child_process";
 import { promisify } from "node:util";
 import zlib from "node:zlib";
 import { Router, type Request, type Response } from "express";
-import { canWrite } from "../auth/access.js";
+import { canRead, canWrite, isPrivate } from "../auth/access.js";
 import { checkBasicAuth } from "../auth/middleware.js";
 import { repoDir } from "./exec.js";
 
@@ -23,6 +23,27 @@ function authorizePush(req: Request, res: Response, slug: string): boolean {
   }
   if (!canWrite(slug, user.username)) {
     res.status(403).send("You do not have write access to this repository.");
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Cloning/fetching (upload-pack) a **private** repo requires authentication AND
+ * read access; public repos stay anonymous. Returns true if allowed; otherwise
+ * sends 401 (no/invalid credentials) or 404 (authenticated but not a member —
+ * we don't confirm a private repo's existence) and returns false.
+ */
+function authorizeRead(req: Request, res: Response, slug: string): boolean {
+  if (!isPrivate(slug)) return true;
+  const user = checkBasicAuth(req.headers.authorization);
+  if (!user) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="thecrux"');
+    res.status(401).send("Authentication required.");
+    return false;
+  }
+  if (!canRead(slug, user.username)) {
+    res.status(404).send("repository not found");
     return false;
   }
   return true;
@@ -107,6 +128,8 @@ gitHttpRouter.get("/:owner/:repo/info/refs", (req: Request, res: Response) => {
   }
   // Pushing must be authenticated + authorized, including this advertisement.
   if (service === "git-receive-pack" && !authorizePush(req, res, slugFromReq(req))) return;
+  // Cloning/fetching a private repo must be authorized too.
+  if (service === "git-upload-pack" && !authorizeRead(req, res, slugFromReq(req))) return;
 
   const dir = resolveRepoDir(String(req.params.owner), String(req.params.repo));
   if (!dir) {
@@ -135,6 +158,7 @@ gitHttpRouter.get("/:owner/:repo/info/refs", (req: Request, res: Response) => {
 function rpcHandler(service: string) {
   return (req: Request, res: Response) => {
     if (service === "git-receive-pack" && !authorizePush(req, res, slugFromReq(req))) return;
+    if (service === "git-upload-pack" && !authorizeRead(req, res, slugFromReq(req))) return;
 
     const dir = resolveRepoDir(String(req.params.owner), String(req.params.repo));
     if (!dir) {

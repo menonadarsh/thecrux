@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { config } from "../config.js";
+import { isPrivate, setPrivate } from "../auth/access.js";
 import { seedDefaultLabels } from "../repo/labels.js";
 import { isValidOwner, isValidRepoName, parseRepoRef, repoDirFor } from "./exec.js";
 
@@ -19,6 +20,8 @@ export interface RepoSummary {
   empty: boolean;
   /** Default branch name, or null if empty. */
   defaultBranch: string | null;
+  /** Whether the repo is private (visible only to owner + collaborators). */
+  private: boolean;
   updatedAt: Date;
 }
 
@@ -79,6 +82,7 @@ export async function createRepo(
   rawOwner: string,
   rawName: string,
   description = "",
+  options: { private?: boolean } = {},
 ): Promise<RepoSummary> {
   const owner = normalizeOwner(rawOwner);
   const name = normalizeRepoName(rawName);
@@ -96,6 +100,10 @@ export async function createRepo(
     await fs.writeFile(path.join(dir, "description"), `${description.trim()}\n`, "utf8");
   }
   await fs.writeFile(path.join(dir, "crux-owner"), `${owner}\n`, "utf8");
+  // Default to private: a privacy-focused server shouldn't expose code by accident.
+  if (options.private ?? true) {
+    await setPrivate(`${owner}/${name}`, true);
+  }
   await seedDefaultLabels(owner, name);
   // Allow dumb-HTTP fetch as a fallback and keep server info fresh.
   await git(dir, ["update-server-info"]).catch(() => {});
@@ -149,13 +157,15 @@ export async function getRepo(slug: string): Promise<RepoSummary | null> {
     fs.stat(dir),
   ]);
 
+  const slugId = `${ref.owner}/${ref.name}`;
   return {
     name: ref.name,
     owner: ref.owner,
-    slug: `${ref.owner}/${ref.name}`,
+    slug: slugId,
     description,
     empty,
     defaultBranch,
+    private: isPrivate(slugId),
     updatedAt: stat.mtime,
   };
 }

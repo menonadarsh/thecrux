@@ -3,6 +3,11 @@
 <section class="termline">
   <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
   <span class="termline-cmd">cd <%= repo.name %></span>
+  <% if (repo.private) { %>
+    <span class="tag tag-private">🔒 private</span>
+  <% } else { %>
+    <span class="tag tag-public"># public</span>
+  <% } %>
   <% if (repo.empty) { %>
     <span class="tag tag-empty">empty</span>
   <% } else { %>

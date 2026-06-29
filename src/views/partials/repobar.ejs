@@ -63,5 +63,8 @@
     <% if (locals.currentUser && currentUser.username === rbRepo.owner) { %>
       <a class="repotab <%= rbActive === 'settings' ? 'is-active' : '' %>" href="<%= rbBase %>/settings">settings</a>
     <% } %>
+    <% if (rbRepo.private) { %>
+      <span class="repobar-vis tag tag-private" title="private repository">🔒 private</span>
+    <% } %>
   </nav>
 </div>

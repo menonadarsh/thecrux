@@ -22,10 +22,13 @@ import { isValidOwner } from "../git/exec.js";
 import { getUser } from "../auth/users.js";
 import {
   addCollaborator,
+  canReadSummary,
   isOwner,
   listCollaborators,
   removeCollaborator,
+  setPrivate,
 } from "../auth/access.js";
+import { loadReadableRepo } from "../auth/guard.js";
 import {
   addLabel,
   isValidColor,
@@ -82,9 +85,10 @@ function cloneUrlFor(req: Request, repo: RepoSummary): string {
 }
 
 // JSON feed for the command palette / client-side search.
-reposRouter.get("/api/repos.json", async (_req, res, next) => {
+reposRouter.get("/api/repos.json", async (req, res, next) => {
   try {
-    const repos = await listRepos();
+    const username = req.currentUser?.username;
+    const repos = (await listRepos()).filter((r) => canReadSummary(r, username));
     res.json(
       repos.map((r) => ({
         name: r.name,
@@ -101,9 +105,19 @@ reposRouter.get("/api/repos.json", async (_req, res, next) => {
 });
 
 // Home — list all repositories.
-reposRouter.get("/", async (_req, res, next) => {
+reposRouter.get("/", async (req, res, next) => {
   try {
-    const repos = await listRepos();
+    // Logged-out visitors get the marketing landing page; signed-in users
+    // land straight on their repository list.
+    if (!res.locals.currentUser) {
+      // A representative clone URL on this host, to make the Smart-HTTP pitch
+      // concrete. Mirrors cloneUrlFor() but for an illustrative repo.
+      const cloneUrl = `${req.protocol}://${req.get("host")}/you/atlas.git`;
+      res.render("landing", { cloneUrl });
+      return;
+    }
+    const username = req.currentUser?.username;
+    const repos = (await listRepos()).filter((r) => canReadSummary(r, username));
     res.render("index", { repos, error: null });
   } catch (err) {
     next(err);
@@ -112,19 +126,24 @@ reposRouter.get("/", async (_req, res, next) => {
 
 // New repository form.
 reposRouter.get("/new", requireAuth, (_req, res) => {
-  res.render("new", { error: null, values: { name: "", description: "" } });
+  res.render("new", { error: null, values: { name: "", description: "", visibility: "private" } });
 });
 
 // Create a repository (under the current user's namespace).
 reposRouter.post("/new", requireAuth, async (req, res, next) => {
   const name = String(req.body.name ?? "");
   const description = String(req.body.description ?? "");
+  const visibility = String(req.body.visibility ?? "private");
   try {
-    const repo = await createRepo(req.currentUser!.username, name, description);
+    const repo = await createRepo(req.currentUser!.username, name, description, {
+      private: visibility !== "public",
+    });
     res.redirect(base(repo));
   } catch (err) {
     if (err instanceof RepoError) {
-      res.status(err.status).render("new", { error: err.message, values: { name, description } });
+      res
+        .status(err.status)
+        .render("new", { error: err.message, values: { name, description, visibility } });
       return;
     }
     next(err);
@@ -185,7 +204,8 @@ reposRouter.get("/:owner", async (req, res, next) => {
       res.status(404).render("404", { name: owner });
       return;
     }
-    const repos = await listReposByOwner(owner);
+    const username = req.currentUser?.username;
+    const repos = (await listReposByOwner(owner)).filter((r) => canReadSummary(r, username));
     const user = getUser(owner);
     res.render("user", { owner, repos, displayName: user?.displayName ?? owner });
   } catch (err) {
@@ -196,11 +216,8 @@ reposRouter.get("/:owner", async (req, res, next) => {
 // Repository root.
 reposRouter.get("/:owner/:name", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) {
-      res.status(404).render("404", { name: slugOf(req) });
-      return;
-    }
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     if (repo.empty || !repo.defaultBranch) {
       res.render("repo", { repo, cloneUrl: cloneUrlFor(req, repo) });
       return;
@@ -214,11 +231,8 @@ reposRouter.get("/:owner/:name", async (req, res, next) => {
 // Browse a directory at a ref.
 reposRouter.get(["/:owner/:name/tree/:ref", "/:owner/:name/tree/:ref/*"], async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) {
-      res.status(404).render("404", { name: slugOf(req) });
-      return;
-    }
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const ref = String(req.params.ref);
     const sub = String((req.params as Record<string, string>)[0] ?? "");
     if (sub && (await objectType(repo.slug, ref, sub)) === "blob") {
@@ -234,11 +248,8 @@ reposRouter.get(["/:owner/:name/tree/:ref", "/:owner/:name/tree/:ref/*"], async 
 // View a file at a ref.
 reposRouter.get("/:owner/:name/blob/:ref/*", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) {
-      res.status(404).render("404", { name: slugOf(req) });
-      return;
-    }
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const ref = String(req.params.ref);
     const sub = String((req.params as Record<string, string>)[0] ?? "");
 
@@ -301,11 +312,8 @@ reposRouter.get(
   ["/:owner/:name/commits/:ref", "/:owner/:name/commits/:ref/*"],
   async (req, res, next) => {
     try {
-      const repo = await getRepo(slugOf(req));
-      if (!repo) {
-        res.status(404).render("404", { name: slugOf(req) });
-        return;
-      }
+      const repo = await loadReadableRepo(req, res);
+      if (!repo) return;
       const ref = String(req.params.ref);
       const sub = String((req.params as Record<string, string>)[0] ?? "");
       const skip = Math.max(0, Number(req.query.skip) || 0);
@@ -344,11 +352,8 @@ reposRouter.get(
 // Branches overview.
 reposRouter.get("/:owner/:name/branches", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) {
-      res.status(404).render("404", { name: slugOf(req) });
-      return;
-    }
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const branches = (await listBranches(repo.slug)) ?? [];
     const tagNames = (await listRefNames(repo.slug)).tags;
     res.render("branches", {
@@ -371,11 +376,8 @@ reposRouter.get("/:owner/:name/branches", async (req, res, next) => {
 // Tags overview.
 reposRouter.get("/:owner/:name/tags", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) {
-      res.status(404).render("404", { name: slugOf(req) });
-      return;
-    }
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const tags = (await listTags(repo.slug)) ?? [];
     const branchNames = (await listRefNames(repo.slug)).branches;
     res.render("tags", {
@@ -397,11 +399,8 @@ reposRouter.get("/:owner/:name/tags", async (req, res, next) => {
 // A single commit with its diff.
 reposRouter.get("/:owner/:name/commit/:sha", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) {
-      res.status(404).render("404", { name: slugOf(req) });
-      return;
-    }
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const commit = await getCommit(repo.slug, String(req.params.sha));
     if (!commit) {
       res.status(404).render("404", { name: `${repo.slug}@${req.params.sha}` });
@@ -457,6 +456,18 @@ reposRouter.get("/:owner/:name/settings", requireAuth, async (req, res, next) =>
     const repo = await requireOwner(req, res);
     if (!repo) return;
     await renderSettings(req, res, repo);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Change repository visibility (public <-> private).
+reposRouter.post("/:owner/:name/settings/visibility", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    await setPrivate(repo.slug, String(req.body.visibility ?? "private") !== "public");
+    res.redirect(`${base(repo)}/settings`);
   } catch (err) {
     next(err);
   }
@@ -529,11 +540,8 @@ reposRouter.post("/:owner/:name/settings/labels/remove", requireAuth, async (req
 // Serve raw file bytes.
 reposRouter.get("/:owner/:name/raw/:ref/*", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) {
-      res.status(404).send("repository not found");
-      return;
-    }
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const ref = String(req.params.ref);
     const sub = String((req.params as Record<string, string>)[0] ?? "");
     const blob = await readBlob(repo.slug, ref, sub);

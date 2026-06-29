@@ -41,6 +41,25 @@
     </div>
   </label>
 
+  <fieldset class="field visibility-field">
+    <span class="field-label">visibility</span>
+    <% var vis = (locals.values && values.visibility) || "private"; %>
+    <label class="vis-option">
+      <input type="radio" name="visibility" value="private" <%= vis !== "public" ? "checked" : "" %> />
+      <span class="vis-body">
+        <span class="vis-title">🔒 private</span>
+        <span class="vis-hint">Only you and collaborators can see and clone it.</span>
+      </span>
+    </label>
+    <label class="vis-option">
+      <input type="radio" name="visibility" value="public" <%= vis === "public" ? "checked" : "" %> />
+      <span class="vis-body">
+        <span class="vis-title"># public</span>
+        <span class="vis-hint">Anyone who can reach this server can browse and clone it.</span>
+      </span>
+    </label>
+  </fieldset>
+
   <div class="form-actions">
     <button class="kbtn primary" type="submit">create repository</button>
     <a class="kbtn" href="/">cancel</a>
