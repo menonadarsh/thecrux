@@ -1,0 +1,17 @@
+services:
+  thecrux:
+    build: .
+    image: thecrux
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persists hosted repos, user accounts, and the session secret.
+      - crux-data:/data
+    environment:
+      # Optional: pin the session signing key. If unset, one is generated and
+      # persisted under /data so sessions still survive restarts.
+      - CRUX_SECRET=${CRUX_SECRET:-}
+    restart: unless-stopped
+
+volumes:
+  crux-data:

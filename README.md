@@ -87,6 +87,28 @@ npm run build
 npm start
 ```
 
+## Deployment (Docker)
+
+thecrux ships a multi-stage `Dockerfile` (the runtime image includes `git`,
+which the app shells out to) and a `docker-compose.yml`.
+
+```bash
+docker compose up --build      # http://localhost:3000
+```
+
+Hosted repos, user accounts, and the session secret persist in the named
+`crux-data` volume (mounted at `/data` inside the container). To run the image
+directly instead of compose:
+
+```bash
+docker build -t thecrux .
+docker run -p 3000:3000 -v crux-data:/data thecrux
+```
+
+Inside the container the server binds `0.0.0.0:3000` and uses `CRUX_DATA_DIR=/data`.
+Set `CRUX_SECRET` to pin the session signing key across rebuilds (otherwise one
+is generated and stored under `/data`).
+
 ## Testing
 
 ```bash
