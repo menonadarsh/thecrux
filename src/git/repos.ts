@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { config } from "../config.js";
+import { seedDefaultLabels } from "../repo/labels.js";
 import { isValidOwner, isValidRepoName, parseRepoRef, repoDirFor } from "./exec.js";
 
 const execFileAsync = promisify(execFile);
@@ -95,6 +96,7 @@ export async function createRepo(
     await fs.writeFile(path.join(dir, "description"), `${description.trim()}\n`, "utf8");
   }
   await fs.writeFile(path.join(dir, "crux-owner"), `${owner}\n`, "utf8");
+  await seedDefaultLabels(owner, name);
   // Allow dumb-HTTP fetch as a fallback and keep server info fresh.
   await git(dir, ["update-server-info"]).catch(() => {});
 

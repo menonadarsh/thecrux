@@ -1,0 +1,3 @@
+<% /* params: names (string[]), labelDefs (LabelDef[]) */ %>
+<% var _lc = {}; (labelDefs || []).forEach(function (d) { _lc[d.name] = d.color; }); %>
+<% (names || []).forEach(function (n) { var c = _lc[n] || '#8b949e'; %><span class="label-chip" style="color:<%= c %>;border-color:<%= c %>66;background:<%= c %>22"><%= n %></span><% }); %>

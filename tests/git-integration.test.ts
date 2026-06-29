@@ -108,6 +108,9 @@ test("clean non-fast-forward merge produces a merge commit", async () => {
   const result = await mergeRefs(slug, "main", "topic", "merge topic", author);
   assert.equal(result.ok, true);
   assert.equal(result.fastForward, false);
+  // base/head SHAs are captured so the merged diff can be snapshotted
+  assert.match(result.baseSha ?? "", /^[0-9a-f]{40}$/);
+  assert.match(result.headSha ?? "", /^[0-9a-f]{40}$/);
 
   assert.equal(await objectType(slug, "main", "topic.txt"), "blob");
   assert.equal(await objectType(slug, "main", "main.txt"), "blob");

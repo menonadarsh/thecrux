@@ -96,3 +96,30 @@ test("issues require auth to create, then render and accept comments", async () 
   assert.equal(comment.status, 302);
   assert.match(await (await fetch(`${srv.base}${loc}`)).text(), /a comment/);
 });
+
+test("a writer can set labels & assignees; a stranger cannot", async () => {
+  const user = uniqueName("u").replace(/-/g, "");
+  const cookie = await registerOverHttp(srv.base, user, "correcthorse");
+  const repo = uniqueName("r");
+  await fetch(`${srv.base}/new`, authed(cookie, { name: repo }));
+  const create = await fetch(`${srv.base}/${user}/${repo}/issues`, authed(cookie, { title: "Labeled" }));
+  const loc = create.headers.get("location")!; // /:user/:repo/issues/1
+
+  // owner (writer) sets a default label + assigns themselves
+  const edit = await fetch(`${srv.base}${loc}/edit`, authed(cookie, { labels: "bug", assignees: user }));
+  assert.equal(edit.status, 302);
+  const html = await (await fetch(`${srv.base}${loc}`)).text();
+  assert.match(html, /label-chip[^>]*>bug</);
+  assert.match(html, new RegExp(`@${user}`));
+
+  // unknown labels are ignored
+  await fetch(`${srv.base}${loc}/edit`, authed(cookie, { labels: "not-a-real-label" }));
+  const html2 = await (await fetch(`${srv.base}${loc}`)).text();
+  assert.doesNotMatch(html2, /not-a-real-label/);
+
+  // a different user without write access is rejected
+  const stranger = uniqueName("u").replace(/-/g, "");
+  const strangerCookie = await registerOverHttp(srv.base, stranger, "correcthorse");
+  const denied = await fetch(`${srv.base}${loc}/edit`, authed(strangerCookie, { labels: "bug" }));
+  assert.equal(denied.status, 403);
+});

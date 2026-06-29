@@ -42,4 +42,30 @@
   </div>
 </section>
 
+<section class="card">
+  <div class="card-head"><span class="card-title">labels</span></div>
+  <div class="settings-body">
+    <ul class="collab-list">
+      <% if (labels.length === 0) { %><li class="muted">No labels.</li><% } %>
+      <% labels.forEach(function (l) { %>
+        <li class="collab-row">
+          <span class="label-chip" style="color:<%= l.color %>;border-color:<%= l.color %>66;background:<%= l.color %>22"><%= l.name %></span>
+          <form method="post" action="<%= repoBase(repo) %>/settings/labels/remove" class="inline-form">
+            <input type="hidden" name="name" value="<%= l.name %>" />
+            <button class="kbtn" type="submit">remove</button>
+          </form>
+        </li>
+      <% }); %>
+    </ul>
+
+    <form class="collab-add label-add" method="post" action="<%= repoBase(repo) %>/settings/labels">
+      <div class="field-mono">
+        <input type="text" name="name" placeholder="label name" autocomplete="off" required />
+      </div>
+      <input type="color" name="color" value="#2f81f7" class="color-input" />
+      <button class="kbtn primary" type="submit">add label</button>
+    </form>
+  </div>
+</section>
+
 <%- include("partials/footer") %>

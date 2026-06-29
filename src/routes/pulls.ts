@@ -1,9 +1,10 @@
 import { Router, type Request } from "express";
-import { canWrite } from "../auth/access.js";
+import { canWrite, listCollaborators } from "../auth/access.js";
 import { requireAuth } from "../auth/middleware.js";
 import { compareRefs, mergeability, mergeRefs } from "../git/compare.js";
 import { listRefNames } from "../git/refs.js";
 import { getRepo, type RepoSummary } from "../git/repos.js";
+import { listLabels, validLabelNames } from "../repo/labels.js";
 import { renderMarkdown } from "../render/markdown.js";
 import type { Comment } from "../issues/store.js";
 import {
@@ -39,6 +40,16 @@ function renderComments(comments: Comment[] | undefined) {
   return (comments ?? []).map((c) => ({ ...c, html: c.body ? renderMarkdown(c.body) : "" }));
 }
 
+function toArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map(String);
+  if (typeof v === "string") return [v];
+  return [];
+}
+
+function assigneeCandidates(repo: RepoSummary): string[] {
+  return [repo.owner, ...listCollaborators(repo.slug)];
+}
+
 // Pull request list.
 pullsRouter.get("/:owner/:name/pulls", async (req, res, next) => {
   try {
@@ -47,7 +58,9 @@ pullsRouter.get("/:owner/:name/pulls", async (req, res, next) => {
     const filter = String(req.query.state ?? "open");
     const state: PullState | undefined =
       filter === "open" || filter === "merged" || filter === "closed" ? filter : undefined;
-    const pulls = listPulls(repo.slug, state);
+    const labelFilter = String(req.query.label ?? "");
+    let pulls = listPulls(repo.slug, state);
+    if (labelFilter) pulls = pulls.filter((p) => (p.labels ?? []).includes(labelFilter));
     const counts = {
       open: listPulls(repo.slug, "open").length,
       merged: listPulls(repo.slug, "merged").length,
@@ -58,7 +71,9 @@ pullsRouter.get("/:owner/:name/pulls", async (req, res, next) => {
       repo,
       pulls,
       filter,
+      labelFilter,
       counts,
+      labels: listLabels(repo.slug),
       repobar: repobar(repo, branches.length, tags.length, counts.open),
     });
   } catch (err) {
@@ -148,8 +163,13 @@ pullsRouter.get("/:owner/:name/pulls/:id", async (req, res, next) => {
       res.status(404).render("404", { name: `${repo.slug}/pulls/${req.params.id}` });
       return;
     }
-    const comparison = await compareRefs(repo.slug, pr.base, pr.head);
-    const merge = comparison ? await mergeability(repo.slug, comparison) : null;
+    // For a merged PR, diff the snapshotted SHAs so the historical diff survives
+    // even after the branches have moved on. Otherwise compare the live refs.
+    const useSnapshot = pr.state === "merged" && pr.baseSha && pr.headSha;
+    const comparison = useSnapshot
+      ? await compareRefs(repo.slug, pr.baseSha!, pr.headSha!)
+      : await compareRefs(repo.slug, pr.base, pr.head);
+    const merge = comparison && pr.state === "open" ? await mergeability(repo.slug, comparison) : null;
     const { branches, tags } = await listRefNames(repo.slug);
     res.render("pull", {
       repo,
@@ -159,8 +179,32 @@ pullsRouter.get("/:owner/:name/pulls/:id", async (req, res, next) => {
       markdownBody: pr.body ? renderMarkdown(pr.body) : "",
       comments: renderComments(pr.comments),
       canWrite: canWrite(repo.slug, req.currentUser?.username),
+      labels: listLabels(repo.slug),
+      assigneeOptions: assigneeCandidates(repo),
       repobar: repobar(repo, branches.length, tags.length, countOpenPulls(repo.slug)),
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Edit labels & assignees (write access required).
+pullsRouter.post("/:owner/:name/pulls/:id/edit", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await getRepo(slugOf(req));
+    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const id = Number(req.params.id);
+    const pr = Number.isInteger(id) ? getPull(repo.slug, id) : null;
+    if (!pr) return void res.status(404).render("404", { name: `${repo.slug}/pulls/${id}` });
+    if (!canWrite(repo.slug, req.currentUser!.username)) {
+      res.status(403).render("error", { message: "You need write access to edit this pull request." });
+      return;
+    }
+    const labels = validLabelNames(repo.slug, toArray(req.body.labels));
+    const candidates = assigneeCandidates(repo);
+    const assignees = toArray(req.body.assignees).filter((a) => candidates.includes(a));
+    await updatePull(repo.slug, id, { labels, assignees });
+    res.redirect(`${base(repo)}/pulls/${id}`);
   } catch (err) {
     next(err);
   }
@@ -217,6 +261,8 @@ pullsRouter.post("/:owner/:name/pulls/:id/merge", requireAuth, async (req, res, 
         markdownBody: pr.body ? renderMarkdown(pr.body) : "",
         comments: renderComments(pr.comments),
         canWrite: canWrite(repo.slug, user.username),
+        labels: listLabels(repo.slug),
+        assigneeOptions: assigneeCandidates(repo),
         mergeError: result.conflict
           ? "This pull request has conflicts and can't be merged automatically."
           : `Could not merge: ${result.reason ?? "unknown error"}.`,
@@ -230,6 +276,8 @@ pullsRouter.post("/:owner/:name/pulls/:id/merge", requireAuth, async (req, res, 
       mergedBy: user.username,
       mergeCommit: result.sha,
       fastForward: result.fastForward,
+      baseSha: result.baseSha,
+      headSha: result.headSha,
     });
     res.redirect(`${base(repo)}/pulls/${pr.id}`);
   } catch (err) {

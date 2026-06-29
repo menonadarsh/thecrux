@@ -28,7 +28,10 @@
           <%= pr.state === 'merged' ? '⇄' : pr.state === 'closed' ? '✕' : '●' %>
         </span>
         <span class="prrow-body">
-          <a class="prrow-title" href="<%= repoBase(repo) %>/pulls/<%= pr.id %>"><%= pr.title %></a>
+          <span class="prrow-titleline">
+            <a class="prrow-title" href="<%= repoBase(repo) %>/pulls/<%= pr.id %>"><%= pr.title %></a>
+            <%- include("partials/labelchips", { names: pr.labels || [], labelDefs: labels }) %>
+          </span>
           <span class="prrow-meta">
             #<%= pr.id %> · @<%= pr.author %> ·
             <span class="ref-chip"><%= pr.head %></span> → <span class="ref-chip"><%= pr.base %></span> ·
