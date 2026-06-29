@@ -2,6 +2,7 @@ import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
+import ssh2 from "ssh2";
 import { config } from "../config.js";
 import { writeJsonAtomic } from "../util/atomic.js";
 
@@ -19,6 +20,22 @@ export interface ApiToken {
   lastUsedAt?: string;
 }
 
+/** A public SSH key, used to authenticate git-over-SSH. */
+export interface SshKey {
+  /** Random id, used to remove the key. */
+  id: string;
+  /** User-chosen label. */
+  name: string;
+  /** Key algorithm, e.g. "ssh-ed25519". */
+  type: string;
+  /** OpenSSH "SHA256:…" fingerprint — the lookup key for SSH auth. */
+  fingerprint: string;
+  /** Canonical "<type> <base64>" public key (no comment). */
+  publicKey: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
 export interface User {
   username: string;
   displayName: string;
@@ -28,6 +45,8 @@ export interface User {
   admin?: boolean;
   /** Personal access tokens for git-over-HTTP. */
   tokens?: ApiToken[];
+  /** Public SSH keys for git-over-SSH. */
+  sshKeys?: SshKey[];
 }
 
 /** Prefix that marks a string as one of our personal access tokens. */
@@ -242,5 +261,104 @@ function touchToken(token: ApiToken): void {
   const last = token.lastUsedAt ? Date.parse(token.lastUsedAt) : 0;
   if (now - last < 60 * 60 * 1000) return;
   token.lastUsedAt = new Date(now).toISOString();
+  void persist().catch(() => {});
+}
+
+// --- SSH public keys -------------------------------------------------------
+
+interface ParsedPublicKey {
+  type: string;
+  fingerprint: string;
+  publicKey: string;
+  comment: string;
+}
+
+/**
+ * Parse and canonicalize a pasted OpenSSH *public* key. Returns its algorithm,
+ * the standard `SHA256:…` fingerprint, the comment, and a canonical
+ * "<type> <base64>" form. Throws AuthError on anything that isn't a valid
+ * public key (including private keys pasted by mistake).
+ */
+export function parsePublicKey(text: string): ParsedPublicKey {
+  const trimmed = text.trim();
+  if (/PRIVATE KEY/i.test(trimmed)) {
+    throw new AuthError("That's a private key — paste your *public* key (the .pub file).");
+  }
+  const parsed = ssh2.utils.parseKey(trimmed);
+  if (parsed instanceof Error) {
+    throw new AuthError("That doesn't look like a valid SSH public key.");
+  }
+  const key = Array.isArray(parsed) ? parsed[0] : parsed;
+  const blob = key.getPublicSSH();
+  const fingerprint = "SHA256:" + createHash("sha256").update(blob).digest("base64").replace(/=+$/, "");
+  return {
+    type: key.type,
+    fingerprint,
+    publicKey: `${key.type} ${blob.toString("base64")}`,
+    comment: (key.comment ?? "").toString().trim(),
+  };
+}
+
+/** A user's SSH keys. */
+export function listSshKeys(username: string): SshKey[] {
+  return getUser(username)?.sshKeys ?? [];
+}
+
+/**
+ * Add an SSH public key to a user. `name` falls back to the key's comment.
+ * Throws AuthError on an invalid key or a fingerprint already in use anywhere.
+ */
+export async function addSshKey(username: string, publicKeyText: string, name = ""): Promise<SshKey> {
+  const user = load()[username.toLowerCase()];
+  if (!user) throw new AuthError("Unknown user.");
+  const parsed = parsePublicKey(publicKeyText);
+
+  // A fingerprint must map to exactly one user for unambiguous SSH auth.
+  for (const u of Object.values(load())) {
+    if (u.sshKeys?.some((k) => k.fingerprint === parsed.fingerprint)) {
+      throw new AuthError("That key is already registered.");
+    }
+  }
+
+  const key: SshKey = {
+    id: randomBytes(8).toString("hex"),
+    name: name.trim() || parsed.comment || "ssh key",
+    type: parsed.type,
+    fingerprint: parsed.fingerprint,
+    publicKey: parsed.publicKey,
+    createdAt: new Date().toISOString(),
+  };
+  (user.sshKeys ??= []).push(key);
+  await persist();
+  return key;
+}
+
+/** Remove an SSH key by id. No-op if not found. */
+export async function removeSshKey(username: string, id: string): Promise<void> {
+  const user = load()[username.toLowerCase()];
+  if (!user?.sshKeys) return;
+  user.sshKeys = user.sshKeys.filter((k) => k.id !== id);
+  await persist();
+}
+
+/** Resolve the owner of an SSH key by its fingerprint, or null (touches lastUsedAt). */
+export function findUserBySshKey(fingerprint: string | undefined | null): User | null {
+  if (!fingerprint) return null;
+  for (const user of Object.values(load())) {
+    const key = user.sshKeys?.find((k) => k.fingerprint === fingerprint);
+    if (key) {
+      touchSshKey(key);
+      return user;
+    }
+  }
+  return null;
+}
+
+/** Like touchToken: record SSH key usage at most once an hour. */
+function touchSshKey(key: SshKey): void {
+  const now = Date.now();
+  const last = key.lastUsedAt ? Date.parse(key.lastUsedAt) : 0;
+  if (now - last < 60 * 60 * 1000) return;
+  key.lastUsedAt = new Date(now).toISOString();
   void persist().catch(() => {});
 }

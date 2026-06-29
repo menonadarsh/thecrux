@@ -118,6 +118,56 @@
   </div>
 </section>
 
+<section class="card">
+  <div class="card-head"><span class="card-title">SSH keys</span></div>
+  <div class="settings-body">
+    <p class="muted">
+      Add a public key to clone and push over SSH. Paste the contents of your
+      <code>.pub</code> file (e.g. <code>~/.ssh/id_ed25519.pub</code>).
+    </p>
+
+    <ul class="collab-list">
+      <% if (sshKeys.length === 0) { %>
+        <li class="muted">No SSH keys yet.</li>
+      <% } %>
+      <% sshKeys.forEach(function (k) { %>
+        <li class="collab-row">
+          <span class="collab-name">
+            <span class="token-key">🔑</span>
+            <span class="token-name"><%= k.name %></span>
+            <code class="token-tail"><%= k.type %></code>
+            <code class="ssh-fp"><%= k.fingerprint %></code>
+            <span class="muted token-dates">
+              added <%= new Date(k.createdAt).toLocaleDateString() %>
+              · <%= k.lastUsedAt ? "last used " + new Date(k.lastUsedAt).toLocaleDateString() : "never used" %>
+            </span>
+          </span>
+          <form method="post" action="/settings/ssh-keys/remove" class="inline-form">
+            <input type="hidden" name="id" value="<%= k.id %>" />
+            <button class="kbtn" type="submit">remove</button>
+          </form>
+        </li>
+      <% }); %>
+    </ul>
+
+    <form class="form" method="post" action="/settings/ssh-keys">
+      <label class="field">
+        <span class="field-label">key name <span class="muted">(optional)</span></span>
+        <div class="field-mono">
+          <input type="text" name="name" placeholder="e.g. work laptop" autocomplete="off" />
+        </div>
+      </label>
+      <label class="field">
+        <span class="field-label">public key</span>
+        <textarea class="ssh-key-input" name="publicKey" rows="3" placeholder="ssh-ed25519 AAAA… you@host" spellcheck="false" required></textarea>
+      </label>
+      <div class="form-actions">
+        <button class="kbtn primary" type="submit">add SSH key</button>
+      </div>
+    </form>
+  </div>
+</section>
+
 <section class="card card-danger">
   <div class="card-head"><span class="card-title">delete account</span></div>
   <div class="settings-body">

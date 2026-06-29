@@ -302,6 +302,24 @@ a.usermenu-item { text-decoration: none; }
   border-radius: 4px;
 }
 .token-dates { font-size: 12px; }
+.ssh-fp {
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-all;
+}
+.ssh-key-input {
+  width: 100%;
+  resize: vertical;
+  padding: 10px 12px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.ssh-key-input:focus { outline: none; border-color: var(--accent); }
 
 /* ---------- Danger zone ---------- */
 .card-danger { border-color: var(--danger); }
