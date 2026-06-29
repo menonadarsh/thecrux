@@ -77,6 +77,20 @@ npm run build
 npm start
 ```
 
+## Testing
+
+```bash
+npm test        # node:test via tsx — unit + git integration
+npm run typecheck
+```
+
+The suite (in `tests/`) covers the pure logic — diff parsing, markdown
+sanitization, syntax-highlight language detection, session signing, password
+hashing, formatting — and exercises the git layer end-to-end against real
+temporary repositories: tree/blob browsing, history, refs, and the full merge
+matrix (fast-forward, clean merge commit, and conflict detection). Tests run
+against an isolated `CRUX_DATA_DIR` and never touch your real data.
+
 ## Configuration
 
 Environment variables:

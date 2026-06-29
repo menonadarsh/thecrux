@@ -3,6 +3,9 @@ dist/
 *.log
 .DS_Store
 
+# test fixtures / scratch data
+.testdata/
+
 # Hosted repos, user accounts (password hashes) and the session secret all
 # live under data/ — never commit any of it.
 data/
