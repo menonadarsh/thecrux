@@ -1,20 +1,20 @@
 <%- include("partials/header", {
   title: "the crux is in the code",
   crumb: "~",
-  description: "thecrux is a keyboard-first, terminal-native place to self-host your git repositories — push over Smart-HTTP, browse trees, and review pull requests. The crux is in the code.",
+  description: "thecrux is a keyboard-first, self-hosted git server — private by default, push over Smart-HTTP with revocable tokens, issues and pull requests included. Your code never leaves your server. The crux is in the code.",
 }) %>
 
 <section class="hero">
-  <p class="hero-eyebrow">// self-hosted git, on your own machine</p>
+  <p class="hero-eyebrow">// self-hosted, private git — on your own server</p>
 
   <h1 class="hero-wordmark"><%= appName %><span class="brand-caret">❯</span></h1>
 
   <p class="hero-tagline">The crux is in the&nbsp;<span class="hero-code">code</span>.</p>
 
   <p class="hero-sub">
-    A keyboard-first, terminal-native place to host repositories — push over
-    Smart-HTTP, browse trees, open issues and pull requests. No tracking, no
-    sprawl. Just the&nbsp;crux.
+    A keyboard-first, self-hosted home for your code — <strong>private by
+    default</strong>, push over Smart-HTTP, issues and pull requests included.
+    No telemetry, no sprawl. Your code never leaves your&nbsp;server.
   </p>
 
   <div class="hero-cta">
@@ -61,9 +61,19 @@
 
 <section class="feats">
   <a class="feat" href="/register">
-    <span class="feat-glyph">⌨</span>
-    <span class="feat-h">Keyboard-first</span>
-    <span class="feat-p">A command palette (<kbd>⌘K</kbd>), <kbd>j</kbd>/<kbd>k</kbd> nav, and shortcuts everywhere. Hands stay home.</span>
+    <span class="feat-glyph">⚿</span>
+    <span class="feat-h">Private by default</span>
+    <span class="feat-p">New repos are private — browsing and cloning are gated to the people you choose. Flip to public when you want.</span>
+  </a>
+  <a class="feat" href="/register">
+    <span class="feat-glyph">❖</span>
+    <span class="feat-h">Your server, your rules</span>
+    <span class="feat-p">An admin who controls the instance: open, invite-only or closed registration, and per-repo collaborators.</span>
+  </a>
+  <a class="feat" href="/register">
+    <span class="feat-glyph">◈</span>
+    <span class="feat-h">Token-based access</span>
+    <span class="feat-p">Clone and push with revocable, per-device access tokens — your password never lands in <code>git</code>'s config.</span>
   </a>
   <a class="feat" href="/register">
     <span class="feat-glyph">⇅</span>
@@ -72,23 +82,13 @@
   </a>
   <a class="feat" href="/register">
     <span class="feat-glyph">◇</span>
-    <span class="feat-h">Issues &amp; PRs</span>
-    <span class="feat-p">Open issues, file pull requests with real diffs, labels and assignees. Review where the work is.</span>
-  </a>
-  <a class="feat" href="/register">
-    <span class="feat-glyph">⚿</span>
-    <span class="feat-h">Per-repo access</span>
-    <span class="feat-p">Owner-namespaced repos with collaborator permissions. You decide who pushes.</span>
+    <span class="feat-h">Issues &amp; pull requests</span>
+    <span class="feat-p">Real diffs, labels and assignees. Review where the work is — keyboard-first, with a <kbd>⌘K</kbd> palette.</span>
   </a>
   <a class="feat" href="/register">
     <span class="feat-glyph">⬡</span>
-    <span class="feat-h">Self-hosted</span>
-    <span class="feat-p">Ships as a single Node app with a Dockerfile. Your code never leaves your box.</span>
-  </a>
-  <a class="feat" href="/register">
-    <span class="feat-glyph">◐</span>
-    <span class="feat-h">Ink &amp; Paper</span>
-    <span class="feat-p">A considered dark and light theme. Toggle with <kbd>t</kbd>. Easy on late-night eyes.</span>
+    <span class="feat-h">Self-hosted &amp; private</span>
+    <span class="feat-p">A single Node app + Docker, behind your own TLS. No telemetry; your code never leaves your box.</span>
   </a>
 </section>
 

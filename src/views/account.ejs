@@ -8,6 +8,58 @@
 <% if (error) { %>
   <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
 <% } %>
+<% if (notice) { %>
+  <div class="notice notice-accent"><span class="notice-mark">✓</span> <%= notice %></div>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><span class="card-title">profile</span></div>
+  <div class="settings-body">
+    <form class="form" method="post" action="/settings/profile">
+      <label class="field">
+        <span class="field-label">username</span>
+        <div class="field-mono">
+          <span class="field-prefix">@</span>
+          <input type="text" value="<%= currentUser.username %>" disabled />
+        </div>
+        <span class="field-hint">Usernames can't be changed.</span>
+      </label>
+      <label class="field">
+        <span class="field-label">display name</span>
+        <div class="field-mono">
+          <input type="text" name="displayName" value="<%= currentUser.displayName %>" autocomplete="name" />
+        </div>
+      </label>
+      <div class="form-actions">
+        <button class="kbtn primary" type="submit">save profile</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><span class="card-title">password</span></div>
+  <div class="settings-body">
+    <form class="form" method="post" action="/settings/password">
+      <label class="field">
+        <span class="field-label">current password</span>
+        <div class="field-mono">
+          <input type="password" name="currentPassword" autocomplete="current-password" required />
+        </div>
+      </label>
+      <label class="field">
+        <span class="field-label">new password</span>
+        <div class="field-mono">
+          <input type="password" name="newPassword" autocomplete="new-password" required />
+        </div>
+        <span class="field-hint">at least 8 characters.</span>
+      </label>
+      <div class="form-actions">
+        <button class="kbtn primary" type="submit">change password</button>
+      </div>
+    </form>
+  </div>
+</section>
 
 <section class="card">
   <div class="card-head"><span class="card-title">personal access tokens</span></div>
@@ -62,6 +114,25 @@
         <input type="text" name="name" placeholder="token name — e.g. laptop, ci" autocomplete="off" required />
       </div>
       <button class="kbtn primary" type="submit">generate token</button>
+    </form>
+  </div>
+</section>
+
+<section class="card card-danger">
+  <div class="card-head"><span class="card-title">delete account</span></div>
+  <div class="settings-body">
+    <p class="muted">
+      Permanently deletes your account<% if (repoCount > 0) { %> and its
+      <strong><%= repoCount %> <%= repoCount === 1 ? "repository" : "repositories" %></strong><% } %>.
+      This cannot be undone.
+    </p>
+    <form class="collab-add" method="post" action="/settings/delete"
+          onsubmit="return confirm('Delete your account<%= repoCount > 0 ? " and " + repoCount + " repositories" : "" %>? This cannot be undone.')">
+      <div class="field-mono">
+        <span class="field-prefix">@</span>
+        <input type="text" name="confirm" placeholder="type your username to confirm" autocomplete="off" autocapitalize="off" spellcheck="false" required />
+      </div>
+      <button class="kbtn danger" type="submit">delete account</button>
     </form>
   </div>
 </section>

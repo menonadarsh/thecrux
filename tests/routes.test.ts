@@ -24,7 +24,7 @@ after(async () => {
 test("home page renders", async () => {
   const res = await fetch(`${srv.base}/`);
   assert.equal(res.status, 200);
-  assert.match(await res.text(), /repositories/i);
+  assert.match(await res.text(), /the crux is in the/i);
 });
 
 test("unknown repo returns 404", async () => {

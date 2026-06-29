@@ -117,6 +117,39 @@ export function authenticate(username: string, password: string): User | null {
   return checkPassword(password, user.passwordHash) ? user : null;
 }
 
+/** Update a user's display name. Throws AuthError on unknown user. */
+export async function setDisplayName(username: string, displayName: string): Promise<void> {
+  const user = load()[username.toLowerCase()];
+  if (!user) throw new AuthError("Unknown user.");
+  user.displayName = displayName.trim() || user.username;
+  await persist();
+}
+
+/** Change a user's password after verifying the current one. */
+export async function changePassword(
+  username: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const user = load()[username.toLowerCase()];
+  if (!user || !checkPassword(currentPassword, user.passwordHash)) {
+    throw new AuthError("Current password is incorrect.");
+  }
+  if (newPassword.length < 8) {
+    throw new AuthError("New password must be at least 8 characters.");
+  }
+  user.passwordHash = hashPassword(newPassword);
+  await persist();
+}
+
+/** Permanently delete a user account. No-op if the user doesn't exist. */
+export async function deleteUser(username: string): Promise<void> {
+  const store = load();
+  if (!store[username.toLowerCase()]) return;
+  delete store[username.toLowerCase()];
+  await persist();
+}
+
 /** True if the named user is an instance administrator. */
 export function isAdmin(username: string | undefined | null): boolean {
   return !!username && getUser(username)?.admin === true;
