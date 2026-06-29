@@ -56,6 +56,8 @@
             </button>
             <div class="usermenu-pop" data-usermenu-pop hidden>
               <span class="usermenu-name"><%= currentUser.displayName %></span>
+              <a class="usermenu-item" href="/<%= currentUser.username %>">your repositories</a>
+              <a class="usermenu-item" href="/settings">settings</a>
               <% if (currentUser.admin) { %>
                 <a class="usermenu-item" href="/admin">admin panel</a>
               <% } %>

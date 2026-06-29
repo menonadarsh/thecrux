@@ -6,7 +6,7 @@ import path from "node:path";
 import { after, before, test } from "node:test";
 import { promisify } from "node:util";
 import { addCollaborator } from "../src/auth/access.js";
-import { createUser } from "../src/auth/users.js";
+import { createToken, createUser, revokeToken } from "../src/auth/users.js";
 import { createRepo } from "../src/git/repos.js";
 import { startServer, uniqueName, type TestServer } from "./helpers.js";
 
@@ -114,6 +114,27 @@ test("authenticated push then anonymous clone round-trips", async () => {
   await git(dest, ["clone", "-q", `${srv.base}/${username}/${repo}.git`, "out"]);
   const content = fs.readFileSync(path.join(dest, "out", "hello.txt"), "utf8");
   assert.match(content, /hi from a push/);
+});
+
+test("a personal access token can push & clone; revoking it stops access", async () => {
+  const repo = uniqueName("tok");
+  await createRepo(username, repo); // private by default
+  const { secret, token } = await createToken(username, "ci");
+  const url = `http://${username}:${secret}@127.0.0.1:${srv.port}/${username}/${repo}.git`;
+
+  // Push using the token in place of the password.
+  const work = tmpdir();
+  await makeCommit(work, "t.txt", "from a token\n", "init");
+  await git(work, ["push", "-q", url, "main"]);
+
+  // Clone the private repo with the same token.
+  const dest = tmpdir();
+  await git(dest, ["clone", "-q", url, "out"]);
+  assert.match(fs.readFileSync(path.join(dest, "out", "t.txt"), "utf8"), /from a token/);
+
+  // Once revoked, the token no longer authenticates.
+  await revokeToken(username, token.id);
+  await assert.rejects(() => git(tmpdir(), ["clone", "-q", url, "out"]));
 });
 
 test("anonymous push is rejected", async () => {

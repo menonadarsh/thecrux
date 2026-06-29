@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { SESSION_COOKIE, readSession } from "./session.js";
-import { authenticate, getUser, type User } from "./users.js";
+import { authenticate, findUserByToken, getUser, type User } from "./users.js";
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -54,7 +54,12 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
   res.status(403).render("error", { message: "You must be an admin to view this page." });
 }
 
-/** Validate HTTP Basic credentials (used by the git transport). */
+/**
+ * Validate HTTP Basic credentials (used by the git transport). Accepts either
+ * an account password or a personal access token. The token may be supplied as
+ * the password (any username) or as the username with an empty password, which
+ * covers the common `https://<user>:<token>@…` and `https://<token>@…` forms.
+ */
 export function checkBasicAuth(header: string | undefined): User | null {
   if (!header || !header.startsWith("Basic ")) return null;
   let decoded: string;
@@ -65,5 +70,12 @@ export function checkBasicAuth(header: string | undefined): User | null {
   }
   const sep = decoded.indexOf(":");
   if (sep < 0) return null;
-  return authenticate(decoded.slice(0, sep), decoded.slice(sep + 1));
+  const username = decoded.slice(0, sep);
+  const password = decoded.slice(sep + 1);
+
+  const byPassword = authenticate(username, password);
+  if (byPassword) return byPassword;
+
+  // Fall back to token auth (token in either the password or username field).
+  return findUserByToken(password) ?? findUserByToken(username);
 }
