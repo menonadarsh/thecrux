@@ -8,12 +8,42 @@ import { parseRepoRef, repoDir } from "../git/exec.js";
  *
  * - The repo **owner** (its namespace) has admin rights.
  * - **Collaborators** (stored in `crux-collaborators.json`) have write access.
- * - Everyone else has read-only access (browsing and cloning stay public).
+ * - **Visibility** (a `crux-private` marker file) decides who may read: public
+ *   repos are world-readable; private repos are visible only to the owner and
+ *   collaborators.
  */
 
 function collabPath(slug: string): string | null {
   const dir = repoDir(slug);
   return dir ? path.join(dir, "crux-collaborators.json") : null;
+}
+
+function privatePath(slug: string): string | null {
+  const dir = repoDir(slug);
+  return dir ? path.join(dir, "crux-private") : null;
+}
+
+/** True if the repo is private (its `crux-private` marker exists). */
+export function isPrivate(slug: string): boolean {
+  const file = privatePath(slug);
+  if (!file) return false;
+  try {
+    fs.accessSync(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Set a repo's visibility by creating/removing its `crux-private` marker. */
+export async function setPrivate(slug: string, value: boolean): Promise<void> {
+  const file = privatePath(slug);
+  if (!file) return;
+  if (value) {
+    await fsp.writeFile(file, "1\n", "utf8");
+  } else {
+    await fsp.rm(file, { force: true });
+  }
 }
 
 function eq(a: string, b: string): boolean {
@@ -49,6 +79,23 @@ export function canWrite(slug: string, username: string | undefined | null): boo
   if (!username) return false;
   if (isOwner(slug, username)) return true;
   return listCollaborators(slug).some((c) => eq(c, username));
+}
+
+/** True if `username` may read the repo (always for public; members for private). */
+export function canRead(slug: string, username: string | undefined | null): boolean {
+  if (!isPrivate(slug)) return true;
+  return canWrite(slug, username);
+}
+
+/**
+ * Read check against an already-loaded summary, avoiding a second stat. Accepts
+ * any object exposing `slug` and `private` (e.g. a RepoSummary).
+ */
+export function canReadSummary(
+  repo: { slug: string; private: boolean },
+  username: string | undefined | null,
+): boolean {
+  return !repo.private || canWrite(repo.slug, username);
 }
 
 /** Add a collaborator (no-op if already present or is the owner). Returns the list. */

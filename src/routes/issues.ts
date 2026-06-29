@@ -1,9 +1,10 @@
-import { Router, type Request } from "express";
+import { Router } from "express";
 import { canWrite, listCollaborators } from "../auth/access.js";
+import { loadReadableRepo } from "../auth/guard.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getUser } from "../auth/users.js";
 import { listRefNames } from "../git/refs.js";
-import { getRepo, type RepoSummary } from "../git/repos.js";
+import { type RepoSummary } from "../git/repos.js";
 import { listLabels, validLabelNames } from "../repo/labels.js";
 import {
   addIssueComment,
@@ -21,7 +22,6 @@ export const issuesRouter = Router();
 
 const enc = encodeURIComponent;
 const base = (repo: RepoSummary) => `/${enc(repo.owner)}/${enc(repo.name)}`;
-const slugOf = (req: Request) => `${req.params.owner}/${req.params.name}`;
 
 function repobar(repo: RepoSummary, branchCount: number, tagCount: number, issueCount: number) {
   return {
@@ -54,8 +54,8 @@ function assigneeCandidates(repo: RepoSummary): string[] {
 // Issue list.
 issuesRouter.get("/:owner/:name/issues", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const filter = String(req.query.state ?? "open");
     const state: IssueState | undefined =
       filter === "open" || filter === "closed" ? filter : undefined;
@@ -84,8 +84,8 @@ issuesRouter.get("/:owner/:name/issues", async (req, res, next) => {
 // New issue form.
 issuesRouter.get("/:owner/:name/issues/new", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const { branches, tags } = await listRefNames(repo.slug);
     res.render("issue-new", {
       repo,
@@ -101,8 +101,8 @@ issuesRouter.get("/:owner/:name/issues/new", requireAuth, async (req, res, next)
 // Create an issue.
 issuesRouter.post("/:owner/:name/issues", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const title = String(req.body.title ?? "");
     const body = String(req.body.body ?? "");
     if (!title.trim()) {
@@ -125,8 +125,8 @@ issuesRouter.post("/:owner/:name/issues", requireAuth, async (req, res, next) =>
 // Issue detail.
 issuesRouter.get("/:owner/:name/issues/:id", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const issue = Number.isInteger(id) ? getIssue(repo.slug, id) : null;
     if (!issue) {
@@ -152,8 +152,8 @@ issuesRouter.get("/:owner/:name/issues/:id", async (req, res, next) => {
 // Add a comment.
 issuesRouter.post("/:owner/:name/issues/:id/comment", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const body = String(req.body.body ?? "");
     if (body.trim()) {
@@ -168,8 +168,8 @@ issuesRouter.post("/:owner/:name/issues/:id/comment", requireAuth, async (req, r
 // Edit labels & assignees (write access required).
 issuesRouter.post("/:owner/:name/issues/:id/edit", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const issue = Number.isInteger(id) ? getIssue(repo.slug, id) : null;
     if (!issue) return void res.status(404).render("404", { name: `${repo.slug}/issues/${id}` });
@@ -190,8 +190,8 @@ issuesRouter.post("/:owner/:name/issues/:id/edit", requireAuth, async (req, res,
 // Close / reopen.
 issuesRouter.post("/:owner/:name/issues/:id/close", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const issue = Number.isInteger(id) ? getIssue(repo.slug, id) : null;
     const user = req.currentUser!.username;
@@ -212,8 +212,8 @@ issuesRouter.post("/:owner/:name/issues/:id/close", requireAuth, async (req, res
 
 issuesRouter.post("/:owner/:name/issues/:id/reopen", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const issue = Number.isInteger(id) ? getIssue(repo.slug, id) : null;
     const user = req.currentUser!.username;

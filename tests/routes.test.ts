@@ -48,7 +48,10 @@ test("register, then create and view a namespaced repo", async () => {
   const cookie = await registerOverHttp(srv.base, user, "correcthorse");
   const repo = uniqueName("r");
 
-  const create = await fetch(`${srv.base}/new`, authed(cookie, { name: repo, description: "via http" }));
+  const create = await fetch(
+    `${srv.base}/new`,
+    authed(cookie, { name: repo, description: "via http", visibility: "public" }),
+  );
   assert.equal(create.status, 302);
   assert.equal(create.headers.get("location"), `/${user}/${repo}`);
 
@@ -68,11 +71,40 @@ test("register, then create and view a namespaced repo", async () => {
   assert.ok(list.find((r) => r.slug === `${user}/${repo}`));
 });
 
+test("private repos are hidden from anonymous and non-member users", async () => {
+  const user = uniqueName("u").replace(/-/g, "");
+  const cookie = await registerOverHttp(srv.base, user, "correcthorse");
+  const repo = uniqueName("r");
+
+  // Default visibility is private.
+  await fetch(`${srv.base}/new`, authed(cookie, { name: repo }));
+  const repoPath = `/${user}/${repo}`;
+
+  // Anonymous: 404 (existence not leaked).
+  assert.equal((await fetch(`${srv.base}${repoPath}`)).status, 404);
+
+  // Not listed on the public home page or the JSON feed.
+  assert.doesNotMatch(await (await fetch(`${srv.base}/`)).text(), new RegExp(repo));
+  const list = (await (await fetch(`${srv.base}/api/repos.json`)).json()) as Array<{ slug: string }>;
+  assert.ok(!list.find((r) => r.slug === `${user}/${repo}`));
+
+  // A non-member, even authenticated, also gets 404.
+  const stranger = uniqueName("u").replace(/-/g, "");
+  const strangerCookie = await registerOverHttp(srv.base, stranger, "correcthorse");
+  const asStranger = await fetch(`${srv.base}${repoPath}`, { headers: { cookie: strangerCookie } });
+  assert.equal(asStranger.status, 404);
+
+  // The owner can see it.
+  const asOwner = await fetch(`${srv.base}${repoPath}`, { headers: { cookie } });
+  assert.equal(asOwner.status, 200);
+  assert.match(await asOwner.text(), new RegExp(repo));
+});
+
 test("issues require auth to create, then render and accept comments", async () => {
   const user = uniqueName("u").replace(/-/g, "");
   const cookie = await registerOverHttp(srv.base, user, "correcthorse");
   const repo = uniqueName("r");
-  await fetch(`${srv.base}/new`, authed(cookie, { name: repo }));
+  await fetch(`${srv.base}/new`, authed(cookie, { name: repo, visibility: "public" }));
   const repoPath = `/${user}/${repo}`;
 
   const anon = await fetch(`${srv.base}${repoPath}/issues`, form({ title: "x" }));
@@ -101,7 +133,7 @@ test("a writer can set labels & assignees; a stranger cannot", async () => {
   const user = uniqueName("u").replace(/-/g, "");
   const cookie = await registerOverHttp(srv.base, user, "correcthorse");
   const repo = uniqueName("r");
-  await fetch(`${srv.base}/new`, authed(cookie, { name: repo }));
+  await fetch(`${srv.base}/new`, authed(cookie, { name: repo, visibility: "public" }));
   const create = await fetch(`${srv.base}/${user}/${repo}/issues`, authed(cookie, { title: "Labeled" }));
   const loc = create.headers.get("location")!; // /:user/:repo/issues/1
 

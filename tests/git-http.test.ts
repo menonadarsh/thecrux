@@ -56,11 +56,35 @@ after(async () => {
 
 test("upload-pack ref advertisement is served (anonymous)", async () => {
   const repo = uniqueName("clone");
-  await createRepo(username, repo);
+  await createRepo(username, repo, "", { private: false });
   const res = await fetch(`${srv.base}/${username}/${repo}.git/info/refs?service=git-upload-pack`);
   assert.equal(res.status, 200);
   assert.match(res.headers.get("content-type") ?? "", /x-git-upload-pack-advertisement/);
   assert.match(await res.text(), /# service=git-upload-pack/);
+});
+
+test("cloning a private repo requires auth; the owner can, a stranger cannot", async () => {
+  const repo = uniqueName("priv");
+  await createRepo(username, repo); // private by default
+
+  const refsUrl = `${srv.base}/${username}/${repo}.git/info/refs?service=git-upload-pack`;
+
+  // Anonymous: challenged for credentials.
+  const anon = await fetch(refsUrl);
+  assert.equal(anon.status, 401);
+  assert.match(anon.headers.get("www-authenticate") ?? "", /Basic/);
+
+  // Owner credentials: allowed.
+  const ownerAuth = "Basic " + Buffer.from(`${username}:${password}`).toString("base64");
+  const owner = await fetch(refsUrl, { headers: { authorization: ownerAuth } });
+  assert.equal(owner.status, 200);
+
+  // A valid but unauthorized user: hidden (404), existence not confirmed.
+  const stranger = uniqueName("stranger").replace(/-/g, "");
+  await createUser(stranger, password);
+  const strangerAuth = "Basic " + Buffer.from(`${stranger}:${password}`).toString("base64");
+  const denied = await fetch(refsUrl, { headers: { authorization: strangerAuth } });
+  assert.equal(denied.status, 404);
 });
 
 test("receive-pack advertisement requires auth", async () => {
@@ -79,7 +103,7 @@ test("receive-pack advertisement requires auth", async () => {
 
 test("authenticated push then anonymous clone round-trips", async () => {
   const repo = uniqueName("rt");
-  await createRepo(username, repo);
+  await createRepo(username, repo, "", { private: false });
 
   const work = tmpdir();
   await makeCommit(work, "hello.txt", "hi from a push\n", "initial");

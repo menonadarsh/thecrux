@@ -12,6 +12,29 @@
 <% } %>
 
 <section class="card">
+  <div class="card-head"><span class="card-title">visibility</span></div>
+  <div class="settings-body">
+    <p class="muted">
+      This repository is currently
+      <% if (repo.private) { %>
+        <span class="tag tag-private">🔒 private</span> — visible only to the owner and collaborators.
+      <% } else { %>
+        <span class="tag tag-public"># public</span> — anyone who can reach this server can browse and clone it.
+      <% } %>
+    </p>
+    <form method="post" action="<%= repoBase(repo) %>/settings/visibility" class="inline-form">
+      <% if (repo.private) { %>
+        <input type="hidden" name="visibility" value="public" />
+        <button class="kbtn" type="submit">make public</button>
+      <% } else { %>
+        <input type="hidden" name="visibility" value="private" />
+        <button class="kbtn" type="submit">make private</button>
+      <% } %>
+    </form>
+  </div>
+</section>
+
+<section class="card">
   <div class="card-head"><span class="card-title">collaborators</span></div>
   <div class="settings-body">
     <p class="muted">The owner <span class="ref-chip">@<%= repo.owner %></span> has full access.

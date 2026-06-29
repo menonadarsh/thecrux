@@ -26,11 +26,13 @@ app.use(express.static(path.join(ROOT, "public")));
 app.use(loadUser);
 
 // Expose app metadata and view helpers to all views.
-app.use((_req, res, next) => {
+app.use((req, res, next) => {
   res.locals.appName = config.appName;
   res.locals.humanSize = humanSize;
   res.locals.relativeTime = relativeTime;
   res.locals.encodePath = encodePath;
+  // Absolute URL of the current request, for canonical / Open Graph tags.
+  res.locals.canonicalUrl = `${req.protocol}://${req.get("host")}${req.path}`;
   // Base path for a repo, e.g. "/ada/my-project".
   res.locals.repoBase = (repo: { owner: string; name: string }) =>
     `/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}`;

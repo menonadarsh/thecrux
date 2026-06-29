@@ -1,9 +1,10 @@
-import { Router, type Request } from "express";
+import { Router } from "express";
 import { canWrite, listCollaborators } from "../auth/access.js";
+import { loadReadableRepo } from "../auth/guard.js";
 import { requireAuth } from "../auth/middleware.js";
 import { compareRefs, mergeability, mergeRefs } from "../git/compare.js";
 import { listRefNames } from "../git/refs.js";
-import { getRepo, type RepoSummary } from "../git/repos.js";
+import { type RepoSummary } from "../git/repos.js";
 import { listLabels, validLabelNames } from "../repo/labels.js";
 import { renderMarkdown } from "../render/markdown.js";
 import type { Comment } from "../issues/store.js";
@@ -21,7 +22,6 @@ export const pullsRouter = Router();
 
 const enc = encodeURIComponent;
 const base = (repo: RepoSummary) => `/${enc(repo.owner)}/${enc(repo.name)}`;
-const slugOf = (req: Request) => `${req.params.owner}/${req.params.name}`;
 
 /** Build the repo subnav data for pull-request pages. */
 function repobar(repo: RepoSummary, branchCount: number, tagCount: number, pullCount: number) {
@@ -53,8 +53,8 @@ function assigneeCandidates(repo: RepoSummary): string[] {
 // Pull request list.
 pullsRouter.get("/:owner/:name/pulls", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const filter = String(req.query.state ?? "open");
     const state: PullState | undefined =
       filter === "open" || filter === "merged" || filter === "closed" ? filter : undefined;
@@ -84,8 +84,8 @@ pullsRouter.get("/:owner/:name/pulls", async (req, res, next) => {
 // New pull request (compare) form.
 pullsRouter.get("/:owner/:name/pulls/new", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const { branches, tags } = await listRefNames(repo.slug);
     const baseRef = String(req.query.base ?? repo.defaultBranch ?? "main");
     const head = String(req.query.head ?? "");
@@ -114,8 +114,8 @@ pullsRouter.get("/:owner/:name/pulls/new", requireAuth, async (req, res, next) =
 // Create a pull request.
 pullsRouter.post("/:owner/:name/pulls", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const baseRef = String(req.body.base ?? "");
     const head = String(req.body.head ?? "");
     const title = String(req.body.title ?? "");
@@ -155,8 +155,8 @@ pullsRouter.post("/:owner/:name/pulls", requireAuth, async (req, res, next) => {
 // Pull request detail.
 pullsRouter.get("/:owner/:name/pulls/:id", async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const pr = Number.isInteger(id) ? getPull(repo.slug, id) : null;
     if (!pr) {
@@ -191,8 +191,8 @@ pullsRouter.get("/:owner/:name/pulls/:id", async (req, res, next) => {
 // Edit labels & assignees (write access required).
 pullsRouter.post("/:owner/:name/pulls/:id/edit", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const pr = Number.isInteger(id) ? getPull(repo.slug, id) : null;
     if (!pr) return void res.status(404).render("404", { name: `${repo.slug}/pulls/${id}` });
@@ -213,8 +213,8 @@ pullsRouter.post("/:owner/:name/pulls/:id/edit", requireAuth, async (req, res, n
 // Add a comment to a pull request.
 pullsRouter.post("/:owner/:name/pulls/:id/comment", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const body = String(req.body.body ?? "");
     if (body.trim()) await addPullComment(repo.slug, id, req.currentUser!.username, body);
@@ -227,8 +227,8 @@ pullsRouter.post("/:owner/:name/pulls/:id/comment", requireAuth, async (req, res
 // Merge a pull request.
 pullsRouter.post("/:owner/:name/pulls/:id/merge", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const pr = Number.isInteger(id) ? getPull(repo.slug, id) : null;
     if (!pr) {
@@ -288,8 +288,8 @@ pullsRouter.post("/:owner/:name/pulls/:id/merge", requireAuth, async (req, res, 
 // Close / reopen.
 pullsRouter.post("/:owner/:name/pulls/:id/close", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const pr = Number.isInteger(id) ? getPull(repo.slug, id) : null;
     const user = req.currentUser!.username;
@@ -304,8 +304,8 @@ pullsRouter.post("/:owner/:name/pulls/:id/close", requireAuth, async (req, res, 
 
 pullsRouter.post("/:owner/:name/pulls/:id/reopen", requireAuth, async (req, res, next) => {
   try {
-    const repo = await getRepo(slugOf(req));
-    if (!repo) return void res.status(404).render("404", { name: slugOf(req) });
+    const repo = await loadReadableRepo(req, res);
+    if (!repo) return;
     const id = Number(req.params.id);
     const pr = Number.isInteger(id) ? getPull(repo.slug, id) : null;
     const user = req.currentUser!.username;

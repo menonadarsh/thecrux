@@ -22,6 +22,9 @@
           <span class="repo-body">
             <span class="repo-line">
               <span class="repo-name"><%= repo.name %></span>
+              <% if (repo.private) { %>
+                <span class="tag tag-private" title="private">🔒</span>
+              <% } %>
               <% if (repo.empty) { %>
                 <span class="tag tag-empty">empty</span>
               <% } else { %>

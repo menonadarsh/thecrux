@@ -1,0 +1,100 @@
+<%- include("partials/header", {
+  title: "the crux is in the code",
+  crumb: "~",
+  description: "thecrux is a keyboard-first, terminal-native place to self-host your git repositories — push over Smart-HTTP, browse trees, and review pull requests. The crux is in the code.",
+}) %>
+
+<section class="hero">
+  <p class="hero-eyebrow">// self-hosted git, on your own machine</p>
+
+  <h1 class="hero-wordmark"><%= appName %><span class="brand-caret">❯</span></h1>
+
+  <p class="hero-tagline">The crux is in the&nbsp;<span class="hero-code">code</span>.</p>
+
+  <p class="hero-sub">
+    A keyboard-first, terminal-native place to host repositories — push over
+    Smart-HTTP, browse trees, open issues and pull requests. No tracking, no
+    sprawl. Just the&nbsp;crux.
+  </p>
+
+  <div class="hero-cta">
+    <a class="kbtn primary" href="/register">
+      <span class="kbtn-key">n</span> create account
+    </a>
+    <a class="kbtn" href="/login">sign in</a>
+    <a class="hero-link" href="#how">
+      see how it works <span class="hero-link-go">↓</span>
+    </a>
+  </div>
+</section>
+
+<section class="termcard" id="how" aria-hidden="true">
+  <div class="termcard-bar">
+    <span class="termdot"></span><span class="termdot"></span><span class="termdot"></span>
+    <span class="termcard-title">~/projects/atlas — git push</span>
+  </div>
+  <pre class="termcard-body"><span class="t-prompt">crux<span class="brand-caret">❯</span></span> <span class="t-cmd">git push origin main</span>
+<span class="t-dim">Enumerating objects: 14, done.</span>
+<span class="t-dim">Writing objects: 100% (8/8), 1.21 KiB | 1.21 MiB/s, done.</span>
+<span class="t-ok">remote:</span> resolved <span class="t-accent">3 commits</span> · opened pull request <span class="t-accent">#42</span>
+<span class="t-ok">remote:</span> review at <span class="t-link">/atlas/pull/42</span>
+<span class="t-prompt">crux<span class="brand-caret">❯</span></span> <span class="t-cmd">crux diff --crux</span>
+
+  <span class="t-file">src/auth/session.ts</span>
+<span class="t-add">+  const token = randomBytes(32).toString("base64url");</span>
+<span class="t-crux">+  setCookie(res, token, { httpOnly: true, sameSite: "lax" }); <span class="t-tag">← the crux</span></span>
+<span class="t-dim"> </span> return token;
+<span class="t-caret">▋</span></pre>
+</section>
+
+<div class="clone-pitch">
+  <span class="clone-pitch-label">push from anywhere with plain git —</span>
+  <div class="copy-row" data-copy="<%= cloneUrl %>">
+    <code class="copy-text">git clone <%= cloneUrl %></code>
+    <button class="copy-btn" type="button" title="Copy">copy</button>
+  </div>
+</div>
+
+<section class="feats">
+  <a class="feat" href="/register">
+    <span class="feat-glyph">⌨</span>
+    <span class="feat-h">Keyboard-first</span>
+    <span class="feat-p">A command palette (<kbd>⌘K</kbd>), <kbd>j</kbd>/<kbd>k</kbd> nav, and shortcuts everywhere. Hands stay home.</span>
+  </a>
+  <a class="feat" href="/register">
+    <span class="feat-glyph">⇅</span>
+    <span class="feat-h">Smart-HTTP git</span>
+    <span class="feat-p">Clone, fetch and push over plain HTTP. No daemons, no special client — just <code>git</code>.</span>
+  </a>
+  <a class="feat" href="/register">
+    <span class="feat-glyph">◇</span>
+    <span class="feat-h">Issues &amp; PRs</span>
+    <span class="feat-p">Open issues, file pull requests with real diffs, labels and assignees. Review where the work is.</span>
+  </a>
+  <a class="feat" href="/register">
+    <span class="feat-glyph">⚿</span>
+    <span class="feat-h">Per-repo access</span>
+    <span class="feat-p">Owner-namespaced repos with collaborator permissions. You decide who pushes.</span>
+  </a>
+  <a class="feat" href="/register">
+    <span class="feat-glyph">⬡</span>
+    <span class="feat-h">Self-hosted</span>
+    <span class="feat-p">Ships as a single Node app with a Dockerfile. Your code never leaves your box.</span>
+  </a>
+  <a class="feat" href="/register">
+    <span class="feat-glyph">◐</span>
+    <span class="feat-h">Ink &amp; Paper</span>
+    <span class="feat-p">A considered dark and light theme. Toggle with <kbd>t</kbd>. Easy on late-night eyes.</span>
+  </a>
+</section>
+
+<section class="endcta">
+  <p class="endcta-line"><span class="t-prompt">crux<span class="brand-caret">❯</span></span> <span class="t-cmd">start</span></p>
+  <h2 class="endcta-h">Get to the crux of your code.</h2>
+  <div class="hero-cta">
+    <a class="kbtn primary" href="/register"><span class="kbtn-key">n</span> create account</a>
+    <a class="kbtn" href="/login">sign in</a>
+  </div>
+</section>
+
+<%- include("partials/footer") %>
