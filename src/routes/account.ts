@@ -3,11 +3,14 @@ import { requireAuth } from "../auth/middleware.js";
 import { SESSION_COOKIE } from "../auth/session.js";
 import {
   AuthError,
+  addSshKey,
   adminCount,
   changePassword,
   createToken,
   deleteUser,
+  listSshKeys,
   listTokens,
+  removeSshKey,
   revokeToken,
   setDisplayName,
 } from "../auth/users.js";
@@ -25,6 +28,7 @@ interface AccountView {
 const SAVED_NOTICES: Record<string, string> = {
   profile: "Profile updated.",
   password: "Password changed.",
+  sshkey: "SSH key added.",
 };
 
 async function renderAccount(
@@ -37,6 +41,7 @@ async function renderAccount(
   const repos = await listReposByOwner(username);
   res.status(status).render("account", {
     tokens: listTokens(username),
+    sshKeys: listSshKeys(username),
     repoCount: repos.length,
     error: view.error ?? null,
     notice: view.notice ?? null,
@@ -95,6 +100,31 @@ accountRouter.post("/settings/tokens", requireAuth, async (req, res, next) => {
 accountRouter.post("/settings/tokens/revoke", requireAuth, async (req, res, next) => {
   try {
     await revokeToken(req.currentUser!.username, String(req.body.id ?? ""));
+    res.redirect("/settings");
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Add an SSH public key.
+accountRouter.post("/settings/ssh-keys", requireAuth, async (req, res, next) => {
+  try {
+    await addSshKey(
+      req.currentUser!.username,
+      String(req.body.publicKey ?? ""),
+      String(req.body.name ?? ""),
+    );
+    res.redirect("/settings?saved=sshkey");
+  } catch (err) {
+    if (err instanceof AuthError) return void (await renderAccount(req, res, { error: err.message }, 400));
+    next(err);
+  }
+});
+
+// Remove an SSH public key by id.
+accountRouter.post("/settings/ssh-keys/remove", requireAuth, async (req, res, next) => {
+  try {
+    await removeSshKey(req.currentUser!.username, String(req.body.id ?? ""));
     res.redirect("/settings");
   } catch (err) {
     next(err);
