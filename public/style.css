@@ -303,6 +303,19 @@ a.usermenu-item { text-decoration: none; }
 }
 .token-dates { font-size: 12px; }
 
+/* ---------- Danger zone ---------- */
+.card-danger { border-color: var(--danger); }
+.card-danger .card-title { color: var(--danger); }
+.kbtn.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.kbtn.danger:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--bg);
+}
+
 /* ---------- Visibility chooser (new repo) ---------- */
 .visibility-field { border: 0; margin: 0; padding: 0; min-width: 0; }
 .visibility-field .field-label { margin-bottom: 8px; }

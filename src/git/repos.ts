@@ -189,6 +189,17 @@ export async function listReposByOwner(owner: string): Promise<RepoSummary[]> {
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 }
 
+/**
+ * Permanently delete every repository under an owner's namespace (its whole
+ * directory). Used when an account is deleted. No-op if the owner is invalid or
+ * has no namespace directory.
+ */
+export async function deleteOwnerRepos(owner: string): Promise<void> {
+  if (!isValidOwner(owner)) return;
+  const ownerDir = path.join(config.reposDir, owner);
+  await fs.rm(ownerDir, { recursive: true, force: true });
+}
+
 /** List all hosted repositories, most recently updated first. */
 export async function listRepos(): Promise<RepoSummary[]> {
   await ensureReposDir();
