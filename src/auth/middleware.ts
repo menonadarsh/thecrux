@@ -41,6 +41,19 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`);
 }
 
+/** Gate a web route behind admin rights (login first, then admin). */
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (req.currentUser?.admin) {
+    next();
+    return;
+  }
+  if (!req.currentUser) {
+    res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`);
+    return;
+  }
+  res.status(403).render("error", { message: "You must be an admin to view this page." });
+}
+
 /** Validate HTTP Basic credentials (used by the git transport). */
 export function checkBasicAuth(header: string | undefined): User | null {
   if (!header || !header.startsWith("Basic ")) return null;

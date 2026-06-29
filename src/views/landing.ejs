@@ -18,10 +18,14 @@
   </p>
 
   <div class="hero-cta">
-    <a class="kbtn primary" href="/register">
-      <span class="kbtn-key">n</span> create account
-    </a>
-    <a class="kbtn" href="/login">sign in</a>
+    <% if (locals.canRegister) { %>
+      <a class="kbtn primary" href="/register">
+        <span class="kbtn-key">n</span> create account
+      </a>
+      <a class="kbtn" href="/login">sign in</a>
+    <% } else { %>
+      <a class="kbtn primary" href="/login">sign in</a>
+    <% } %>
     <a class="hero-link" href="#how">
       see how it works <span class="hero-link-go">↓</span>
     </a>
@@ -92,8 +96,12 @@
   <p class="endcta-line"><span class="t-prompt">crux<span class="brand-caret">❯</span></span> <span class="t-cmd">start</span></p>
   <h2 class="endcta-h">Get to the crux of your code.</h2>
   <div class="hero-cta">
-    <a class="kbtn primary" href="/register"><span class="kbtn-key">n</span> create account</a>
-    <a class="kbtn" href="/login">sign in</a>
+    <% if (locals.canRegister) { %>
+      <a class="kbtn primary" href="/register"><span class="kbtn-key">n</span> create account</a>
+      <a class="kbtn" href="/login">sign in</a>
+    <% } else { %>
+      <a class="kbtn primary" href="/login">sign in</a>
+    <% } %>
   </div>
 </section>
 

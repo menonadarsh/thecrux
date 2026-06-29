@@ -9,6 +9,8 @@ export interface User {
   displayName: string;
   passwordHash: string;
   createdAt: string;
+  /** Instance administrator. The first registered user is made admin. */
+  admin?: boolean;
 }
 
 export class AuthError extends Error {}
@@ -74,11 +76,14 @@ export async function createUser(
   if (store[name.toLowerCase()]) {
     throw new AuthError(`Username '${name}' is taken.`);
   }
+  // The very first account on a fresh instance becomes its administrator.
+  const isFirst = Object.keys(store).length === 0;
   const user: User = {
     username: name,
     displayName: (displayName ?? name).trim() || name,
     passwordHash: hashPassword(password),
     createdAt: new Date().toISOString(),
+    admin: isFirst ? true : undefined,
   };
   store[name.toLowerCase()] = user;
   await persist();
@@ -90,4 +95,28 @@ export function authenticate(username: string, password: string): User | null {
   const user = getUser(username);
   if (!user) return null;
   return checkPassword(password, user.passwordHash) ? user : null;
+}
+
+/** True if the named user is an instance administrator. */
+export function isAdmin(username: string | undefined | null): boolean {
+  return !!username && getUser(username)?.admin === true;
+}
+
+/** All users, oldest first. */
+export function listUsers(): User[] {
+  return Object.values(load()).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+/** Number of administrators (used to refuse demoting the last one). */
+export function adminCount(): number {
+  return Object.values(load()).filter((u) => u.admin).length;
+}
+
+/** Grant or revoke admin rights. No-op if the user doesn't exist. */
+export async function setAdmin(username: string, value: boolean): Promise<void> {
+  const user = load()[username.toLowerCase()];
+  if (!user) return;
+  if (value) user.admin = true;
+  else delete user.admin;
+  await persist();
 }

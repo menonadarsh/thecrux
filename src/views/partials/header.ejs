@@ -52,9 +52,13 @@
           <div class="usermenu" data-usermenu>
             <button class="kbtn" type="button" data-usermenu-toggle>
               <span class="user-glyph">●</span> <%= currentUser.username %>
+              <% if (currentUser.admin) { %><span class="kbtn-key">admin</span><% } %>
             </button>
             <div class="usermenu-pop" data-usermenu-pop hidden>
               <span class="usermenu-name"><%= currentUser.displayName %></span>
+              <% if (currentUser.admin) { %>
+                <a class="usermenu-item" href="/admin">admin panel</a>
+              <% } %>
               <form method="post" action="/logout">
                 <button class="usermenu-item" type="submit">sign out</button>
               </form>
@@ -62,7 +66,9 @@
           </div>
         <% } else { %>
           <a class="kbtn" href="/login">sign in</a>
-          <a class="kbtn primary" href="/register">create account</a>
+          <% if (locals.canRegister) { %>
+            <a class="kbtn primary" href="/register">create account</a>
+          <% } %>
         <% } %>
       </div>
     </header>

@@ -253,6 +253,44 @@ code { font-family: var(--font-mono); }
   background: var(--accent-soft);
 }
 .tag-public { color: var(--muted); }
+.tag-admin {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ---------- Admin: notice banner, invites ---------- */
+.notice {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 11px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  margin-bottom: 18px;
+  font-size: 13.5px;
+}
+.notice-accent { border-color: var(--accent); background: var(--accent-soft); }
+.notice-mark { color: var(--accent); }
+
+a.usermenu-item { text-decoration: none; }
+
+.invite-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.invite-row:last-child { border-bottom: 0; }
+.invite-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.invite-note { color: var(--text); }
+.invite-meta .inline-form { margin-left: auto; }
 
 /* ---------- Visibility chooser (new repo) ---------- */
 .visibility-field { border: 0; margin: 0; padding: 0; min-width: 0; }
