@@ -1,12 +1,10 @@
-import { spawn, execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 import zlib from "node:zlib";
 import { Router, type Request, type Response } from "express";
 import { canRead, canWrite, isPrivate } from "../auth/access.js";
 import { checkBasicAuth } from "../auth/middleware.js";
 import { repoDir } from "./exec.js";
-
-const execFileAsync = promisify(execFile);
+import { finishReceivePack } from "./transport.js";
 
 /**
  * Pushing (receive-pack) requires authentication AND write access to the repo.
@@ -86,36 +84,6 @@ function resolveRepoDir(owner: string, repoParam: string): string | null {
   return repoDir(`${owner}/${name}`);
 }
 
-/**
- * After a push, a freshly-created bare repo may still have HEAD pointing at an
- * unborn branch (e.g. it was init'd as `main` but the client pushed `master`).
- * Repoint HEAD at a real branch so the repo no longer looks empty.
- */
-async function repairHead(dir: string): Promise<void> {
-  try {
-    const head = (await execFileAsync("git", ["-C", dir, "symbolic-ref", "HEAD"])).stdout.trim();
-    const branch = head.replace(/^refs\/heads\//, "");
-    await execFileAsync("git", ["-C", dir, "rev-parse", "--verify", branch]);
-    return; // HEAD already resolves — nothing to do.
-  } catch {
-    // HEAD is unborn; fall through and pick an existing branch.
-  }
-
-  try {
-    const out = (
-      await execFileAsync("git", ["-C", dir, "for-each-ref", "--format=%(refname:short)", "refs/heads"])
-    ).stdout
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (out.length === 0) return;
-    const preferred = out.find((b) => b === "main") ?? out.find((b) => b === "master") ?? out[0];
-    await execFileAsync("git", ["-C", dir, "symbolic-ref", "HEAD", `refs/heads/${preferred}`]);
-  } catch (err) {
-    console.error("repairHead failed:", err);
-  }
-}
-
 export const gitHttpRouter = Router();
 
 // Ref advertisement (the first request of any clone/fetch/push).
@@ -187,11 +155,7 @@ function rpcHandler(service: string) {
       res.end();
     });
     child.on("close", () => {
-      if (service === "git-receive-pack") {
-        // Keep dumb-http info fresh and make sure HEAD points at a real branch.
-        execFile("git", ["-C", dir, "update-server-info"], () => {});
-        void repairHead(dir);
-      }
+      if (service === "git-receive-pack") finishReceivePack(dir);
     });
   };
 }

@@ -127,11 +127,29 @@ against an isolated `CRUX_DATA_DIR` and never touch your real data.
 
 Environment variables:
 
-| Variable          | Default            | Description                          |
-| ----------------- | ------------------ | ------------------------------------ |
-| `PORT`            | `3000`             | HTTP port                            |
-| `HOST`            | `127.0.0.1`        | Bind address                         |
-| `CRUX_REPOS_DIR`  | `./data/repos`     | Where bare repositories are stored   |
+| Variable             | Default            | Description                                         |
+| -------------------- | ------------------ | --------------------------------------------------- |
+| `PORT`               | `3000`             | HTTP port                                           |
+| `HOST`               | `127.0.0.1`        | Bind address                                        |
+| `CRUX_REPOS_DIR`     | `./data/repos`     | Where bare repositories are stored                  |
+| `CRUX_SSH_ENABLED`   | `true`             | Enable the git-over-SSH server (`0` to disable)     |
+| `CRUX_SSH_PORT`      | `2222`             | SSH port (unprivileged so it works without root)    |
+| `CRUX_SSH_HOST`      | `$HOST`            | SSH bind address                                    |
+| `CRUX_SSH_HOST_KEY`  | _(generated)_      | Path to a PEM host key — bring your own for stable `known_hosts` across replicas |
+
+### git over SSH
+
+Add your public key on `/settings`, then:
+
+```bash
+git clone ssh://git@your-host:2222/<username>/my-project.git
+```
+
+- **Turnkey:** the SSH server is on by default; in Docker just map the port
+  (`2222:2222`, or `22:2222` to allow bare `git@host` URLs).
+- **Self-managed:** set `CRUX_SSH_PORT`/`CRUX_SSH_HOST` to taste, point
+  `CRUX_SSH_HOST_KEY` at your own host key so `known_hosts` stays stable, or set
+  `CRUX_SSH_ENABLED=0` to run HTTPS-only.
 
 ## How it works
 

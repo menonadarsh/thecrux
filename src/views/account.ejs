@@ -125,6 +125,11 @@
       Add a public key to clone and push over SSH. Paste the contents of your
       <code>.pub</code> file (e.g. <code>~/.ssh/id_ed25519.pub</code>).
     </p>
+    <% if (!sshEnabled) { %>
+      <p class="muted">SSH is disabled on this server — keys won't be usable until an admin enables it.</p>
+    <% } else if (sshHostFingerprint) { %>
+      <p class="field-hint">Server host key: <code class="ssh-fp"><%= sshHostFingerprint %></code> — verify this on first connect.</p>
+    <% } %>
 
     <ul class="collab-list">
       <% if (sshKeys.length === 0) { %>
