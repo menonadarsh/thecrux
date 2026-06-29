@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import fsp from "node:fs/promises";
 import path from "node:path";
 import { repoDir, repoDirFor } from "../git/exec.js";
+import { writeJsonAtomic } from "../util/atomic.js";
 
 export interface LabelDef {
   name: string;
@@ -47,13 +47,13 @@ export function listLabels(slug: string): LabelDef[] {
 async function save(slug: string, defs: LabelDef[]): Promise<void> {
   const file = labelsPath(slug);
   if (!file) return;
-  await fsp.writeFile(file, JSON.stringify(defs, null, 2), "utf8");
+  await writeJsonAtomic(file, defs);
 }
 
 /** Seed the default label set for a freshly created repo (owner/name). */
 export async function seedDefaultLabels(owner: string, name: string): Promise<void> {
   const file = path.join(repoDirFor(owner, name), "crux-labels.json");
-  await fsp.writeFile(file, JSON.stringify(DEFAULT_LABELS, null, 2), "utf8");
+  await writeJsonAtomic(file, DEFAULT_LABELS);
 }
 
 export async function addLabel(slug: string, name: string, color: string): Promise<LabelDef[]> {

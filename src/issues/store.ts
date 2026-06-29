@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import fsp from "node:fs/promises";
 import path from "node:path";
 import { repoDir } from "../git/exec.js";
+import { writeJsonAtomic } from "../util/atomic.js";
 
 export type IssueState = "open" | "closed";
 
@@ -45,7 +45,7 @@ function load(dir: string): IssueFile {
 }
 
 async function save(dir: string, data: IssueFile): Promise<void> {
-  await fsp.writeFile(issuesPath(dir), JSON.stringify(data, null, 2), "utf8");
+  await writeJsonAtomic(issuesPath(dir), data);
 }
 
 /** Next id for a comment within a thread. */

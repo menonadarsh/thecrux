@@ -3,6 +3,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { config } from "../config.js";
+import { writeJsonAtomic } from "../util/atomic.js";
 
 /**
  * Instance-wide settings (registration policy + invite tokens), persisted as a
@@ -50,7 +51,7 @@ function load(): InstanceSettings {
 
 async function persist(): Promise<void> {
   await fsp.mkdir(config.dataDir, { recursive: true });
-  await fsp.writeFile(FILE, JSON.stringify(settings, null, 2), "utf8");
+  await writeJsonAtomic(FILE, settings);
 }
 
 export function isRegistrationPolicy(v: unknown): v is RegistrationPolicy {

@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import fsp from "node:fs/promises";
 import path from "node:path";
 import { repoDir } from "../git/exec.js";
+import { writeJsonAtomic } from "../util/atomic.js";
 import { type Comment, nextCommentId } from "../issues/store.js";
 
 export type PullState = "open" | "merged" | "closed";
@@ -46,7 +46,7 @@ function load(dir: string): PullFile {
 }
 
 async function save(dir: string, data: PullFile): Promise<void> {
-  await fsp.writeFile(pullsPath(dir), JSON.stringify(data, null, 2), "utf8");
+  await writeJsonAtomic(pullsPath(dir), data);
 }
 
 /** All pull requests for a repo, newest first, optionally filtered by state. */
