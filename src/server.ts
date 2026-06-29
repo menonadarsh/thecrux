@@ -5,10 +5,23 @@ import { ensureReposDir, migrateFlatRepos } from "./git/repos.js";
 async function main() {
   await ensureReposDir();
   await migrateFlatRepos();
-  app.listen(config.port, config.host, () => {
+  const server = app.listen(config.port, config.host, () => {
     console.log(`${config.appName} running at http://${config.host}:${config.port}`);
     console.log(`Repositories stored in ${config.reposDir}`);
   });
+
+  // Graceful shutdown: stop accepting connections, let in-flight requests
+  // finish, then exit. Falls back to a hard exit if that takes too long.
+  const shutdown = (signal: string) => {
+    console.log(`\n${signal} received — shutting down…`);
+    server.close(() => process.exit(0));
+    setTimeout(() => {
+      console.error("Forced exit (connections did not close in time).");
+      process.exit(1);
+    }, 10_000).unref();
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 main().catch((err) => {

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import {
   consumeInvite,
   getRegistrationPolicy,
@@ -7,6 +7,7 @@ import {
 } from "../auth/instance.js";
 import { SESSION_COOKIE, SESSION_MAX_AGE_MS, createSession } from "../auth/session.js";
 import { AuthError, authenticate, createUser, userCount } from "../auth/users.js";
+import { config } from "../config.js";
 
 export const authRouter = Router();
 
@@ -19,12 +20,20 @@ function registrationMode(): "bootstrap" | RegistrationPolicy {
   return userCount() === 0 ? "bootstrap" : getRegistrationPolicy();
 }
 
-const COOKIE_OPTS = {
-  httpOnly: true,
-  sameSite: "lax" as const,
-  maxAge: SESSION_MAX_AGE_MS,
-  path: "/",
-};
+/**
+ * Session cookie options. The Secure flag is set when the request is HTTPS (or
+ * forced via config), so plain-HTTP intranet deployments keep working while TLS
+ * deployments get a Secure cookie.
+ */
+function cookieOpts(req: Request) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: config.forceSecureCookies || req.secure,
+    maxAge: SESSION_MAX_AGE_MS,
+    path: "/",
+  };
+}
 
 /** Only allow relative paths as post-login redirects (avoid open redirects). */
 function safeNext(next: unknown): string {
@@ -53,7 +62,7 @@ authRouter.post("/login", (req, res) => {
     });
     return;
   }
-  res.cookie(SESSION_COOKIE, createSession(user.username), COOKIE_OPTS);
+  res.cookie(SESSION_COOKIE, createSession(user.username), cookieOpts(req));
   res.redirect(next);
 });
 
@@ -96,7 +105,7 @@ authRouter.post("/register", async (req, res, next) => {
     const user = await createUser(username, password, displayName);
     // Spend the invite only once the account actually exists.
     if (mode === "invite") await consumeInvite(invite);
-    res.cookie(SESSION_COOKIE, createSession(user.username), COOKIE_OPTS);
+    res.cookie(SESSION_COOKIE, createSession(user.username), cookieOpts(req));
     res.redirect(redirect);
   } catch (err) {
     if (err instanceof AuthError) return fail(err.message);

@@ -3,6 +3,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { config } from "../config.js";
+import { writeJsonAtomic } from "../util/atomic.js";
 
 /** A personal access token, used to authenticate git-over-HTTP. */
 export interface ApiToken {
@@ -51,7 +52,7 @@ function load(): Record<string, User> {
 
 async function persist(): Promise<void> {
   await fsp.mkdir(config.dataDir, { recursive: true });
-  await fsp.writeFile(USERS_FILE, JSON.stringify(users, null, 2), "utf8");
+  await writeJsonAtomic(USERS_FILE, users);
 }
 
 function hashPassword(password: string): string {

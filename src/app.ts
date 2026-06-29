@@ -18,6 +18,25 @@ export const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(ROOT, "src", "views"));
 
+// Honour X-Forwarded-* from a trusted reverse proxy (TLS termination), so
+// req.protocol/req.secure are correct. Off unless CRUX_TRUST_PROXY is set.
+if (config.trustProxy !== false) {
+  app.set("trust proxy", config.trustProxy);
+}
+
+// Conservative security headers on every response.
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  next();
+});
+
+// Liveness probe for containers/orchestrators. Cheap and unauthenticated.
+app.get("/healthz", (_req, res) => {
+  res.json({ status: "ok", name: config.appName });
+});
+
 // Git Smart-HTTP transport must see the raw request stream, so mount it before
 // any body parser. Its paths (/:repo/info/refs, /:repo/git-*) don't collide
 // with the web UI's single-segment routes.

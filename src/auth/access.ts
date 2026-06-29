@@ -2,6 +2,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { parseRepoRef, repoDir } from "../git/exec.js";
+import { writeJsonAtomic } from "../util/atomic.js";
 
 /**
  * Per-repository access control.
@@ -65,7 +66,7 @@ export function listCollaborators(slug: string): string[] {
 async function writeCollaborators(slug: string, list: string[]): Promise<void> {
   const file = collabPath(slug);
   if (!file) return;
-  await fsp.writeFile(file, JSON.stringify(list, null, 2), "utf8");
+  await writeJsonAtomic(file, list);
 }
 
 /** True if `username` is the repo owner. */
