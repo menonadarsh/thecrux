@@ -5,6 +5,7 @@ import { loadUser } from "./auth/middleware.js";
 import { userCount } from "./auth/users.js";
 import { config, ROOT } from "./config.js";
 import { gitHttpRouter } from "./git/http.js";
+import { accountRouter } from "./routes/account.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { issuesRouter } from "./routes/issues.js";
@@ -47,6 +48,7 @@ app.use((req, res, next) => {
 
 app.use("/", authRouter);
 app.use("/", adminRouter);
+app.use("/", accountRouter);
 app.use("/", issuesRouter);
 app.use("/", pullsRouter);
 app.use("/", reposRouter);

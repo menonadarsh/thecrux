@@ -1,8 +1,22 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { config } from "../config.js";
+
+/** A personal access token, used to authenticate git-over-HTTP. */
+export interface ApiToken {
+  /** Random id, used to revoke the token. */
+  id: string;
+  /** User-chosen label. */
+  name: string;
+  /** SHA-256 of the secret (the secret itself is shown only once, at creation). */
+  hash: string;
+  /** Last 4 chars of the secret, for display (e.g. crux_pat_…a1b2). */
+  tail: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
 
 export interface User {
   username: string;
@@ -11,7 +25,12 @@ export interface User {
   createdAt: string;
   /** Instance administrator. The first registered user is made admin. */
   admin?: boolean;
+  /** Personal access tokens for git-over-HTTP. */
+  tokens?: ApiToken[];
 }
+
+/** Prefix that marks a string as one of our personal access tokens. */
+export const TOKEN_PREFIX = "crux_pat_";
 
 export class AuthError extends Error {}
 
@@ -119,4 +138,75 @@ export async function setAdmin(username: string, value: boolean): Promise<void> 
   if (value) user.admin = true;
   else delete user.admin;
   await persist();
+}
+
+/** SHA-256 hex of a token secret (tokens are high-entropy, so a fast hash is fine). */
+function tokenHash(secret: string): string {
+  return createHash("sha256").update(secret).digest("hex");
+}
+
+/** A user's tokens (metadata only — never the secret). */
+export function listTokens(username: string): ApiToken[] {
+  return getUser(username)?.tokens ?? [];
+}
+
+/**
+ * Create a personal access token for a user. Returns the one-time plaintext
+ * secret (shown to the user once) and the stored record. No-op-safe: throws
+ * AuthError if the user is unknown or the name is blank.
+ */
+export async function createToken(
+  username: string,
+  name: string,
+): Promise<{ secret: string; token: ApiToken }> {
+  const user = load()[username.toLowerCase()];
+  if (!user) throw new AuthError("Unknown user.");
+  const label = name.trim();
+  if (!label) throw new AuthError("Give the token a name so you can recognize it later.");
+
+  const secret = TOKEN_PREFIX + randomBytes(24).toString("base64url");
+  const token: ApiToken = {
+    id: randomBytes(8).toString("hex"),
+    name: label,
+    hash: tokenHash(secret),
+    tail: secret.slice(-4),
+    createdAt: new Date().toISOString(),
+  };
+  (user.tokens ??= []).push(token);
+  await persist();
+  return { secret, token };
+}
+
+/** Revoke a token by id. No-op if not found. */
+export async function revokeToken(username: string, id: string): Promise<void> {
+  const user = load()[username.toLowerCase()];
+  if (!user?.tokens) return;
+  user.tokens = user.tokens.filter((t) => t.id !== id);
+  await persist();
+}
+
+/** Resolve the owner of a token secret, or null. Updates lastUsedAt (throttled). */
+export function findUserByToken(secret: string | undefined | null): User | null {
+  if (!secret || !secret.startsWith(TOKEN_PREFIX)) return null;
+  const hash = tokenHash(secret);
+  for (const user of Object.values(load())) {
+    const token = user.tokens?.find((t) => t.hash === hash);
+    if (token) {
+      touchToken(token);
+      return user;
+    }
+  }
+  return null;
+}
+
+/**
+ * Record token usage, but persist at most once an hour to avoid a disk write on
+ * every git request. Best-effort — failures are ignored.
+ */
+function touchToken(token: ApiToken): void {
+  const now = Date.now();
+  const last = token.lastUsedAt ? Date.parse(token.lastUsedAt) : 0;
+  if (now - last < 60 * 60 * 1000) return;
+  token.lastUsedAt = new Date(now).toISOString();
+  void persist().catch(() => {});
 }

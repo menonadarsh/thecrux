@@ -1,0 +1,69 @@
+<%- include("partials/header", { title: "settings", crumb: "~/settings" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">account settings</span>
+</section>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><span class="card-title">personal access tokens</span></div>
+  <div class="settings-body">
+    <p class="muted">
+      Use a token in place of your password when cloning or pushing over HTTP —
+      revocable, and per-device. Your password is never stored in git's config.
+    </p>
+
+    <% if (newToken) { %>
+      <div class="notice notice-accent">
+        <span class="notice-mark">★</span>
+        <div>
+          <strong>New token “<%= newToken.name %>”</strong> — copy it now, it won't be shown again.
+        </div>
+      </div>
+      <div class="copy-row" data-copy="<%= newToken.secret %>">
+        <code class="copy-text"><%= newToken.secret %></code>
+        <button class="copy-btn" type="button" title="Copy">copy</button>
+      </div>
+      <p class="field-hint">
+        Then: <code>git clone https://&lt;you&gt;:&lt;token&gt;@host/owner/repo.git</code> —
+        or just paste the token when git prompts for a password.
+      </p>
+    <% } %>
+
+    <ul class="collab-list">
+      <% if (tokens.length === 0) { %>
+        <li class="muted">No tokens yet.</li>
+      <% } %>
+      <% tokens.forEach(function (t) { %>
+        <li class="collab-row">
+          <span class="collab-name">
+            <span class="token-key">🔑</span>
+            <span class="token-name"><%= t.name %></span>
+            <code class="token-tail">crux_pat_…<%= t.tail %></code>
+            <span class="muted token-dates">
+              created <%= new Date(t.createdAt).toLocaleDateString() %>
+              · <%= t.lastUsedAt ? "last used " + new Date(t.lastUsedAt).toLocaleDateString() : "never used" %>
+            </span>
+          </span>
+          <form method="post" action="/settings/tokens/revoke" class="inline-form">
+            <input type="hidden" name="id" value="<%= t.id %>" />
+            <button class="kbtn" type="submit">revoke</button>
+          </form>
+        </li>
+      <% }); %>
+    </ul>
+
+    <form class="collab-add" method="post" action="/settings/tokens">
+      <div class="field-mono">
+        <input type="text" name="name" placeholder="token name — e.g. laptop, ci" autocomplete="off" required />
+      </div>
+      <button class="kbtn primary" type="submit">generate token</button>
+    </form>
+  </div>
+</section>
+
+<%- include("partials/footer") %>
