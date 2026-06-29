@@ -9,8 +9,31 @@
   <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
 <% } %>
 
+<% if (mode === "bootstrap") { %>
+  <div class="notice notice-accent">
+    <span class="notice-mark">★</span>
+    You're claiming a fresh instance — this first account becomes the <strong>admin</strong>.
+  </div>
+<% } %>
+
+<% if (mode === "closed") { %>
+  <div class="blank">
+    <p>Registration is closed on this server.</p>
+    <p class="muted">Ask an admin for an invite, or <a href="/login">sign in</a> if you already have an account.</p>
+  </div>
+<% } else { %>
+
 <form class="form" method="post" action="/register">
   <input type="hidden" name="next" value="<%= next %>" />
+  <% if (mode === "invite") { %>
+    <label class="field">
+      <span class="field-label">invite code</span>
+      <div class="field-mono">
+        <input type="text" name="invite" value="<%= values.invite %>" placeholder="paste your invite token" autocomplete="off" spellcheck="false" required />
+      </div>
+      <span class="field-hint">This server requires an invite to register.</span>
+    </label>
+  <% } %>
   <label class="field">
     <span class="field-label">username</span>
     <div class="field-mono">
@@ -37,5 +60,6 @@
     <a class="kbtn" href="/login">sign in instead</a>
   </div>
 </form>
+<% } %>
 
 <%- include("partials/footer") %>

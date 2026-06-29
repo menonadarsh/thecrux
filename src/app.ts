@@ -1,8 +1,11 @@
 import express from "express";
 import path from "node:path";
+import { getRegistrationPolicy } from "./auth/instance.js";
 import { loadUser } from "./auth/middleware.js";
+import { userCount } from "./auth/users.js";
 import { config, ROOT } from "./config.js";
 import { gitHttpRouter } from "./git/http.js";
+import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { issuesRouter } from "./routes/issues.js";
 import { pullsRouter } from "./routes/pulls.js";
@@ -33,6 +36,9 @@ app.use((req, res, next) => {
   res.locals.encodePath = encodePath;
   // Absolute URL of the current request, for canonical / Open Graph tags.
   res.locals.canonicalUrl = `${req.protocol}://${req.get("host")}${req.path}`;
+  // Whether new visitors can sign up (drives "create account" CTAs). The
+  // bootstrap account on a fresh instance can always register.
+  res.locals.canRegister = userCount() === 0 || getRegistrationPolicy() !== "closed";
   // Base path for a repo, e.g. "/ada/my-project".
   res.locals.repoBase = (repo: { owner: string; name: string }) =>
     `/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}`;
@@ -40,6 +46,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/", authRouter);
+app.use("/", adminRouter);
 app.use("/", issuesRouter);
 app.use("/", pullsRouter);
 app.use("/", reposRouter);

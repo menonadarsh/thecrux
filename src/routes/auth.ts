@@ -1,8 +1,23 @@
 import { Router } from "express";
+import {
+  consumeInvite,
+  getRegistrationPolicy,
+  inviteValid,
+  type RegistrationPolicy,
+} from "../auth/instance.js";
 import { SESSION_COOKIE, SESSION_MAX_AGE_MS, createSession } from "../auth/session.js";
-import { AuthError, authenticate, createUser } from "../auth/users.js";
+import { AuthError, authenticate, createUser, userCount } from "../auth/users.js";
 
 export const authRouter = Router();
+
+/**
+ * Decide what registration mode applies to this request. The very first account
+ * on a fresh instance ("bootstrap") is always allowed and becomes the admin,
+ * regardless of policy.
+ */
+function registrationMode(): "bootstrap" | RegistrationPolicy {
+  return userCount() === 0 ? "bootstrap" : getRegistrationPolicy();
+}
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -49,8 +64,9 @@ authRouter.get("/register", (req, res) => {
   }
   res.render("register", {
     error: null,
+    mode: registrationMode(),
     next: safeNext(req.query.next),
-    values: { username: "", displayName: "" },
+    values: { username: "", displayName: "", invite: String(req.query.invite ?? "") },
   });
 });
 
@@ -58,20 +74,32 @@ authRouter.post("/register", async (req, res, next) => {
   const username = String(req.body.username ?? "");
   const displayName = String(req.body.displayName ?? "");
   const password = String(req.body.password ?? "");
+  const invite = String(req.body.invite ?? "").trim();
   const redirect = safeNext(req.body.next);
+  const mode = registrationMode();
+
+  const fail = (message: string, status = 400) =>
+    void res.status(status).render("register", {
+      error: message,
+      mode,
+      next: redirect,
+      values: { username, displayName, invite },
+    });
+
+  // Enforce the registration policy (the bootstrap account bypasses it).
+  if (mode === "closed") return fail("Registration is closed on this server.", 403);
+  if (mode === "invite" && !inviteValid(invite)) {
+    return fail("A valid invite is required to register on this server.", 403);
+  }
+
   try {
     const user = await createUser(username, password, displayName);
+    // Spend the invite only once the account actually exists.
+    if (mode === "invite") await consumeInvite(invite);
     res.cookie(SESSION_COOKIE, createSession(user.username), COOKIE_OPTS);
     res.redirect(redirect);
   } catch (err) {
-    if (err instanceof AuthError) {
-      res.status(400).render("register", {
-        error: err.message,
-        next: redirect,
-        values: { username, displayName },
-      });
-      return;
-    }
+    if (err instanceof AuthError) return fail(err.message);
     next(err);
   }
 });

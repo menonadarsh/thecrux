@@ -1,0 +1,106 @@
+<%- include("partials/header", { title: "admin", crumb: "~/admin" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">admin</span>
+  <span class="termline-meta"><%= users.length %> <%= users.length === 1 ? "user" : "users" %></span>
+</section>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><span class="card-title">registration</span></div>
+  <div class="settings-body">
+    <p class="muted">Who may create an account on this server.</p>
+    <form method="post" action="/admin/registration">
+      <% [
+        ["open", "open", "Anyone who can reach this server can sign up."],
+        ["invite", "invite-only", "A valid invite link is required to sign up."],
+        ["closed", "closed", "No new accounts. Existing users keep working."],
+      ].forEach(function (opt) { %>
+        <label class="vis-option">
+          <input type="radio" name="registration" value="<%= opt[0] %>" <%= registration === opt[0] ? "checked" : "" %> />
+          <span class="vis-body">
+            <span class="vis-title"><%= opt[1] %></span>
+            <span class="vis-hint"><%= opt[2] %></span>
+          </span>
+        </label>
+      <% }); %>
+      <div class="form-actions">
+        <button class="kbtn primary" type="submit">save policy</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><span class="card-title">invites</span></div>
+  <div class="settings-body">
+    <p class="muted">
+      Single-use links for inviting people — they work whatever the policy, but
+      are required when registration is <span class="ref-chip">invite-only</span>.
+    </p>
+
+    <ul class="collab-list">
+      <% if (invites.length === 0) { %>
+        <li class="muted">No active invites.</li>
+      <% } %>
+      <% invites.forEach(function (inv) { %>
+        <li class="invite-row">
+          <div class="copy-row" data-copy="<%= inv.url %>">
+            <code class="copy-text"><%= inv.url %></code>
+            <button class="copy-btn" type="button" title="Copy">copy</button>
+          </div>
+          <div class="invite-meta">
+            <% if (inv.note) { %><span class="invite-note"><%= inv.note %></span><% } %>
+            <span class="muted">by @<%= inv.createdBy %></span>
+            <form method="post" action="/admin/invites/revoke" class="inline-form">
+              <input type="hidden" name="token" value="<%= inv.token %>" />
+              <button class="kbtn" type="submit">revoke</button>
+            </form>
+          </div>
+        </li>
+      <% }); %>
+    </ul>
+
+    <form class="collab-add" method="post" action="/admin/invites">
+      <div class="field-mono">
+        <input type="text" name="note" placeholder="note (optional) — e.g. who it's for" autocomplete="off" />
+      </div>
+      <button class="kbtn primary" type="submit">create invite</button>
+    </form>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><span class="card-title">users</span></div>
+  <div class="settings-body">
+    <ul class="collab-list">
+      <% users.forEach(function (u) { %>
+        <li class="collab-row">
+          <span class="collab-name">
+            <span class="user-glyph">●</span>
+            <a href="/<%= u.username %>">@<%= u.username %></a>
+            <% if (u.admin) { %><span class="tag tag-admin">admin</span><% } %>
+            <% if (currentUser && u.username === currentUser.username) { %><span class="muted">(you)</span><% } %>
+          </span>
+          <% if (u.admin) { %>
+            <form method="post" action="/admin/users/demote" class="inline-form">
+              <input type="hidden" name="username" value="<%= u.username %>" />
+              <button class="kbtn" type="submit" <%= adminCount <= 1 ? "disabled" : "" %> title="<%= adminCount <= 1 ? 'The last admin can’t be demoted' : 'Remove admin rights' %>">remove admin</button>
+            </form>
+          <% } else { %>
+            <form method="post" action="/admin/users/promote" class="inline-form">
+              <input type="hidden" name="username" value="<%= u.username %>" />
+              <button class="kbtn" type="submit">make admin</button>
+            </form>
+          <% } %>
+        </li>
+      <% }); %>
+    </ul>
+  </div>
+</section>
+
+<%- include("partials/footer") %>
