@@ -35,6 +35,7 @@ import {
   setPrivate,
 } from "../auth/access.js";
 import { loadReadableRepo } from "../auth/guard.js";
+import { addWebhook, listWebhooks, removeWebhook, WebhookError } from "../webhooks.js";
 import {
   addLabel,
   isValidColor,
@@ -443,6 +444,7 @@ async function renderSettings(
     repo,
     collaborators: listCollaborators(repo.slug),
     labels: listLabels(repo.slug),
+    webhooks: listWebhooks(repo.slug),
     error,
     repobar: {
       repo,
@@ -554,6 +556,36 @@ reposRouter.post("/:owner/:name/settings/labels/remove", requireAuth, async (req
     const repo = await requireOwner(req, res);
     if (!repo) return;
     await removeLabel(repo.slug, String(req.body.name ?? ""));
+    res.redirect(`${base(repo)}/settings`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Add a webhook.
+reposRouter.post("/:owner/:name/settings/webhooks", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    const hook = await addWebhook(repo.slug, String(req.body.url ?? ""), String(req.body.secret ?? ""));
+    recordReq(req, "webhook.add", { target: repo.slug, detail: hook.url });
+    res.redirect(`${base(repo)}/settings`);
+  } catch (err) {
+    if (err instanceof WebhookError) {
+      const repo = await getRepo(slugOf(req));
+      if (repo) return void (await renderSettings(req, res, repo, err.message, 400));
+    }
+    next(err);
+  }
+});
+
+// Remove a webhook.
+reposRouter.post("/:owner/:name/settings/webhooks/remove", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    await removeWebhook(repo.slug, String(req.body.id ?? ""));
+    recordReq(req, "webhook.remove", { target: repo.slug });
     res.redirect(`${base(repo)}/settings`);
   } catch (err) {
     next(err);
