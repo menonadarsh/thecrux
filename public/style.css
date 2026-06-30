@@ -309,6 +309,22 @@ a.usermenu-item { text-decoration: none; }
 .token-dates { font-size: 12px; }
 .webhook-url { font-size: 12.5px; word-break: break-all; }
 
+/* ---------- Organizations ---------- */
+.owner-select {
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.toolbar-spacer { flex: 1; }
+.org-members { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.org-member { color: var(--text); font-size: 13px; }
+.org-member:hover { color: var(--accent); text-decoration: none; }
+.org-member .tag { margin-left: 4px; }
+
 /* ---------- Audit log ---------- */
 .audit-filter { display: flex; gap: 8px; align-items: center; }
 .audit-filter input {

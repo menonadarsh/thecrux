@@ -3,6 +3,7 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import { parseRepoRef, repoDir } from "../git/exec.js";
 import { writeJsonAtomic } from "../util/atomic.js";
+import { isOrg, isOrgMember, isOrgOwner } from "./orgs.js";
 
 /**
  * Per-repository access control.
@@ -97,17 +98,28 @@ async function writeCollaborators(slug: string, list: string[]): Promise<void> {
   await writeJsonAtomic(file, list);
 }
 
-/** True if `username` is the repo owner. */
+/**
+ * True if `username` has owner (admin) rights on the repo: the personal
+ * namespace matches the user, or — for an org namespace — the user is an org
+ * owner.
+ */
 export function isOwner(slug: string, username: string | undefined | null): boolean {
   const ref = parseRepoRef(slug);
-  return !!ref && !!username && eq(ref.owner, username);
+  if (!ref || !username) return false;
+  if (eq(ref.owner, username)) return true;
+  return isOrg(ref.owner) && isOrgOwner(ref.owner, username);
 }
 
-/** True if `username` may write to the repo (owner or collaborator). */
+/**
+ * True if `username` may write to the repo: an owner (above), a repo
+ * collaborator, or — for an org namespace — any org member.
+ */
 export function canWrite(slug: string, username: string | undefined | null): boolean {
   if (!username) return false;
   if (isOwner(slug, username)) return true;
-  return listCollaborators(slug).some((c) => eq(c, username));
+  if (listCollaborators(slug).some((c) => eq(c, username))) return true;
+  const ref = parseRepoRef(slug);
+  return !!ref && isOrg(ref.owner) && isOrgMember(ref.owner, username);
 }
 
 /** True if `username` may read the repo (always for public; members for private). */

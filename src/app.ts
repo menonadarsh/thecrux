@@ -8,6 +8,7 @@ import { gitHttpRouter } from "./git/http.js";
 import { accountRouter } from "./routes/account.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
+import { orgsRouter } from "./routes/orgs.js";
 import { issuesRouter } from "./routes/issues.js";
 import { pullsRouter } from "./routes/pulls.js";
 import { reposRouter } from "./routes/repos.js";
@@ -68,6 +69,7 @@ app.use((req, res, next) => {
 app.use("/", authRouter);
 app.use("/", adminRouter);
 app.use("/", accountRouter);
+app.use("/", orgsRouter);
 app.use("/", issuesRouter);
 app.use("/", pullsRouter);
 app.use("/", reposRouter);

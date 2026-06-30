@@ -13,7 +13,17 @@
   <label class="field">
     <span class="field-label">name</span>
     <div class="field-mono">
-      <span class="field-prefix">crux/</span>
+      <% if (owners && owners.length > 1) { %>
+        <select name="owner" class="owner-select">
+          <% owners.forEach(function (o) { %>
+            <option value="<%= o %>" <%= o === values.owner ? "selected" : "" %>><%= o %></option>
+          <% }); %>
+        </select>
+        <span class="field-prefix">/</span>
+      <% } else { %>
+        <input type="hidden" name="owner" value="<%= values.owner %>" />
+        <span class="field-prefix"><%= values.owner %>/</span>
+      <% } %>
       <input
         type="text"
         name="name"

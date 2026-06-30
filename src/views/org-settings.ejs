@@ -1,0 +1,64 @@
+<%- include("partials/header", { title: "settings · " + org.name, crumb: "~/" + org.name + "/settings" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">org settings</span>
+  <span class="termline-meta">@<%= org.name %></span>
+</section>
+
+<div class="toolbar">
+  <a class="kbtn" href="/<%= org.name %>">‹ <%= org.name %></a>
+</div>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><span class="card-title">members</span></div>
+  <div class="settings-body">
+    <p class="muted">Owners administer the org and all its repos. Members can push to all of them.</p>
+
+    <ul class="collab-list">
+      <% members.forEach(function (m) { %>
+        <li class="collab-row">
+          <span class="collab-name">
+            <span class="user-glyph">●</span>
+            <a href="/<%= m.username %>">@<%= m.username %></a>
+            <%= m.displayName !== m.username ? "(" + m.displayName + ")" : "" %>
+            <% if (m.role === "owner") { %><span class="tag tag-admin">owner</span><% } %>
+          </span>
+          <form method="post" action="/orgs/<%= org.name %>/members/remove" class="inline-form">
+            <input type="hidden" name="username" value="<%= m.username %>" />
+            <button class="kbtn" type="submit">remove</button>
+          </form>
+        </li>
+      <% }); %>
+    </ul>
+
+    <form class="collab-add" method="post" action="/orgs/<%= org.name %>/members">
+      <div class="field-mono">
+        <span class="field-prefix">@</span>
+        <input type="text" name="username" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false" required />
+      </div>
+      <select name="role" class="owner-select">
+        <option value="member">member</option>
+        <option value="owner">owner</option>
+      </select>
+      <button class="kbtn primary" type="submit">add / update</button>
+    </form>
+  </div>
+</section>
+
+<section class="card card-danger">
+  <div class="card-head"><span class="card-title">delete organization</span></div>
+  <div class="settings-body">
+    <p class="muted">Only possible once the org owns no repositories.</p>
+    <form method="post" action="/orgs/<%= org.name %>/delete" class="inline-form"
+          onsubmit="return confirm('Delete the @<%= org.name %> organization?')">
+      <button class="kbtn danger" type="submit">delete organization</button>
+    </form>
+  </div>
+</section>
+
+<%- include("partials/footer") %>

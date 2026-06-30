@@ -1,5 +1,7 @@
 import { Router, type Request } from "express";
 import { record, recordReq } from "../audit.js";
+import { getOrg } from "../auth/orgs.js";
+import { isReservedNamespace } from "../git/exec.js";
 import {
   consumeInvite,
   getRegistrationPolicy,
@@ -103,6 +105,10 @@ authRouter.post("/register", async (req, res, next) => {
   if (mode === "invite" && !inviteValid(invite)) {
     return fail("A valid invite is required to register on this server.", 403);
   }
+
+  // The username shares a global namespace with orgs and route words.
+  if (isReservedNamespace(username.trim())) return fail("That username is reserved.");
+  if (getOrg(username.trim())) return fail(`The name '${username.trim()}' is taken.`);
 
   try {
     const user = await createUser(username, password, displayName);
