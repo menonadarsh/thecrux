@@ -7,7 +7,7 @@ import { canRead, canWrite, isArchived } from "../auth/access.js";
 import { findUserBySshKey } from "../auth/users.js";
 import { config } from "../config.js";
 import { parseRepoRef, repoDir } from "./exec.js";
-import { finishReceivePack } from "./transport.js";
+import { finishReceivePack, snapshotRefs, type PushContext } from "./transport.js";
 
 const { Server, utils } = ssh2;
 
@@ -111,7 +111,7 @@ export function startSshServer(opts: { port?: number; host?: string } = {}): Ssh
         const session = acceptSession();
         session.on("exec", (acceptExec, _rejectExec, info) => {
           const channel = acceptExec();
-          runGit(info.command, username, channel);
+          void runGit(info.command, username, channel).catch(() => channel.end());
         });
         // No interactive shell or other subsystems — git only.
         session.on("shell", (_accept, reject) => reject());
@@ -131,7 +131,7 @@ export function startSshServer(opts: { port?: number; host?: string } = {}): Ssh
 }
 
 /** Authorize and run a git service for an authenticated user over an SSH channel. */
-function runGit(command: string, username: string | null, channel: ssh2.ServerChannel): void {
+async function runGit(command: string, username: string | null, channel: ssh2.ServerChannel): Promise<void> {
   const fail = (message: string, code = 1) => {
     channel.stderr.write(`thecrux: ${message}\n`);
     channel.exit(code);
@@ -156,6 +156,11 @@ function runGit(command: string, username: string | null, channel: ssh2.ServerCh
     return fail("this repository is archived (read-only)");
   }
 
+  // Capture refs up front so webhooks can report what the push changed.
+  const ctx: PushContext | undefined = isWrite
+    ? { slug: parsed.slug, pusher: username, before: await snapshotRefs(dir) }
+    : undefined;
+
   const subcommand = parsed.service.replace(/^git-/, "");
   const child = spawn("git", [subcommand, dir]);
   channel.pipe(child.stdin);
@@ -166,7 +171,7 @@ function runGit(command: string, username: string | null, channel: ssh2.ServerCh
   child.stderr.pipe(channel.stderr, { end: false });
   child.on("error", () => fail("git failed to start"));
   child.on("close", (code) => {
-    if (isWrite) finishReceivePack(dir);
+    if (isWrite) finishReceivePack(dir, ctx);
     channel.exit(code ?? 0);
     channel.end();
   });

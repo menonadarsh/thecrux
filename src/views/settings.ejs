@@ -92,6 +92,53 @@
 </section>
 
 <section class="card">
+  <div class="card-head"><span class="card-title">webhooks</span></div>
+  <div class="settings-body">
+    <p class="muted">
+      POST a JSON payload to a URL after every push. Set a secret to receive an
+      <code>X-Crux-Signature: sha256=…</code> HMAC over the body.
+    </p>
+
+    <ul class="collab-list">
+      <% if (webhooks.length === 0) { %>
+        <li class="muted">No webhooks yet.</li>
+      <% } %>
+      <% webhooks.forEach(function (h) { %>
+        <li class="collab-row">
+          <span class="collab-name">
+            <span class="token-key">↗</span>
+            <code class="webhook-url"><%= h.url %></code>
+            <% if (h.secret) { %><span class="tag tag-branch">signed</span><% } %>
+          </span>
+          <form method="post" action="<%= repoBase(repo) %>/settings/webhooks/remove" class="inline-form">
+            <input type="hidden" name="id" value="<%= h.id %>" />
+            <button class="kbtn" type="submit">remove</button>
+          </form>
+        </li>
+      <% }); %>
+    </ul>
+
+    <form class="form" method="post" action="<%= repoBase(repo) %>/settings/webhooks">
+      <label class="field">
+        <span class="field-label">payload URL</span>
+        <div class="field-mono">
+          <input type="url" name="url" placeholder="https://ci.example.com/hooks/crux" autocomplete="off" spellcheck="false" required />
+        </div>
+      </label>
+      <label class="field">
+        <span class="field-label">secret <span class="muted">(optional)</span></span>
+        <div class="field-mono">
+          <input type="text" name="secret" placeholder="for HMAC signing" autocomplete="off" spellcheck="false" />
+        </div>
+      </label>
+      <div class="form-actions">
+        <button class="kbtn primary" type="submit">add webhook</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="card">
   <div class="card-head"><span class="card-title">repository</span></div>
   <div class="settings-body">
     <form class="collab-add" method="post" action="<%= repoBase(repo) %>/settings/rename">

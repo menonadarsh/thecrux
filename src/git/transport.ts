@@ -1,7 +1,33 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { deliverPush, diffRefs } from "../webhooks.js";
 
 const execFileAsync = promisify(execFile);
+
+/** Context for a receive-pack so webhooks can describe what changed. */
+export interface PushContext {
+  slug: string;
+  pusher: string | null;
+  /** Ref → SHA snapshot taken *before* the push was applied. */
+  before: Map<string, string>;
+}
+
+/** Snapshot every ref to its SHA, e.g. to diff a push. */
+export async function snapshotRefs(dir: string): Promise<Map<string, string>> {
+  const refs = new Map<string, string>();
+  try {
+    const out = (
+      await execFileAsync("git", ["-C", dir, "for-each-ref", "--format=%(objectname) %(refname)"])
+    ).stdout;
+    for (const line of out.split("\n")) {
+      const sp = line.indexOf(" ");
+      if (sp > 0) refs.set(line.slice(sp + 1).trim(), line.slice(0, sp).trim());
+    }
+  } catch {
+    // no refs / not a repo
+  }
+  return refs;
+}
 
 /**
  * After a push, a freshly-created bare repo may still have HEAD pointing at an
@@ -37,7 +63,13 @@ export async function repairHead(dir: string): Promise<void> {
  * Run after a `receive-pack` completes (HTTP or SSH): refresh dumb-HTTP info and
  * make sure HEAD points at a real branch. Shared by both git transports.
  */
-export function finishReceivePack(dir: string): void {
+export function finishReceivePack(dir: string, ctx?: PushContext): void {
   execFile("git", ["-C", dir, "update-server-info"], () => {});
   void repairHead(dir);
+  if (ctx) {
+    void (async () => {
+      const after = await snapshotRefs(dir);
+      await deliverPush(ctx.slug, ctx.pusher, diffRefs(ctx.before, after));
+    })();
+  }
 }

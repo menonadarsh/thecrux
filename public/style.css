@@ -307,6 +307,7 @@ a.usermenu-item { text-decoration: none; }
   border-radius: 4px;
 }
 .token-dates { font-size: 12px; }
+.webhook-url { font-size: 12.5px; word-break: break-all; }
 
 /* ---------- Audit log ---------- */
 .audit-filter { display: flex; gap: 8px; align-items: center; }

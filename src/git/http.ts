@@ -4,7 +4,7 @@ import { Router, type Request, type Response } from "express";
 import { canRead, canWrite, isArchived, isPrivate } from "../auth/access.js";
 import { checkBasicAuth } from "../auth/middleware.js";
 import { repoDir } from "./exec.js";
-import { finishReceivePack } from "./transport.js";
+import { finishReceivePack, snapshotRefs, type PushContext } from "./transport.js";
 
 /**
  * Pushing (receive-pack) requires authentication AND write access to the repo.
@@ -128,15 +128,27 @@ gitHttpRouter.get("/:owner/:repo/info/refs", (req: Request, res: Response) => {
 
 /** Build a POST handler that streams a request through a git RPC process. */
 function rpcHandler(service: string) {
-  return (req: Request, res: Response) => {
-    if (service === "git-receive-pack" && !authorizePush(req, res, slugFromReq(req))) return;
-    if (service === "git-upload-pack" && !authorizeRead(req, res, slugFromReq(req))) return;
+  return async (req: Request, res: Response) => {
+    const slug = slugFromReq(req);
+    if (service === "git-receive-pack" && !authorizePush(req, res, slug)) return;
+    if (service === "git-upload-pack" && !authorizeRead(req, res, slug)) return;
 
     const dir = resolveRepoDir(String(req.params.owner), String(req.params.repo));
     if (!dir) {
       res.status(404).send("repository not found");
       return;
     }
+
+    // For a push, capture the ref state + pusher up front so webhooks can report
+    // what changed once receive-pack finishes.
+    const isReceive = service === "git-receive-pack";
+    const ctx: PushContext | undefined = isReceive
+      ? {
+          slug,
+          pusher: checkBasicAuth(req.headers.authorization)?.username ?? null,
+          before: await snapshotRefs(dir),
+        }
+      : undefined;
 
     res.setHeader("Content-Type", `application/x-${service}-result`);
     res.setHeader("Cache-Control", "no-cache");
@@ -159,7 +171,7 @@ function rpcHandler(service: string) {
       res.end();
     });
     child.on("close", () => {
-      if (service === "git-receive-pack") finishReceivePack(dir);
+      if (isReceive) finishReceivePack(dir, ctx);
     });
   };
 }
