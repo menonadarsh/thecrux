@@ -89,6 +89,9 @@ npm start
 
 ## Deployment (Docker)
 
+See [`docs/deploy.md`](docs/deploy.md) for the full guide — reverse proxy + TLS,
+SSH, backups/restore, and upgrades. The essentials:
+
 thecrux ships a multi-stage `Dockerfile` (the runtime image includes `git`,
 which the app shells out to) and a `docker-compose.yml`.
 
@@ -122,6 +125,18 @@ hashing, formatting — and exercises the git layer end-to-end against real
 temporary repositories: tree/blob browsing, history, refs, and the full merge
 matrix (fast-forward, clean merge commit, and conflict detection). Tests run
 against an isolated `CRUX_DATA_DIR` and never touch your real data.
+
+## Backups
+
+Everything lives under the data dir, so a backup is a snapshot of it:
+
+```bash
+npm run crux -- backup --out /var/backups/thecrux        # write a .tar.gz
+npm run crux -- restore /var/backups/thecrux/thecrux-backup-….tar.gz
+```
+
+In Docker, run `node dist/cli.js backup`/`restore` inside the container. See
+[`docs/deploy.md`](docs/deploy.md#backups) for scheduling and consistency notes.
 
 ## Configuration
 
