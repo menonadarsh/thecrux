@@ -55,6 +55,53 @@ For SSH, either tell users the port (`ssh://git@git.example.com:2222/...`) or ma
 host `22` to the container's `2222` in `docker-compose.yml` (`"22:2222"`) so bare
 `git@git.example.com:owner/repo.git` works.
 
+### On a bare IP / without a domain
+
+thecrux speaks plain HTTP and never terminates TLS itself — a reverse proxy in
+front does. To reach it directly by IP, bind it to all interfaces:
+
+```bash
+# in .env
+HOST=0.0.0.0
+CRUX_TRUST_PROXY=1   # so the app sees HTTPS from the proxy and marks cookies Secure
+```
+
+You *can* run it as plain `http://<ip>:3000` with no proxy, but the session
+cookie won't be `Secure` and credentials/clones travel in clear text — only
+acceptable on a trusted private network. For HTTPS the snag is the certificate,
+not thecrux: **public CAs (incl. the Let's Encrypt issuer Caddy uses by default)
+won't issue certs for a bare IP address.** Three ways around it:
+
+- **Give it a hostname (recommended).** Even without buying a domain, a wildcard
+  DNS service like [`sslip.io`](https://sslip.io) maps an IP into a name —
+  `203.0.113.5` → `203-0-113-5.sslip.io` — which Caddy can auto-cert:
+
+  ```caddyfile
+  203-0-113-5.sslip.io {
+      reverse_proxy 127.0.0.1:3000
+  }
+  ```
+
+- **Self-signed cert on the IP** — fine for a private/intranet box; clients (and
+  `git`) will warn until they trust your CA. With Caddy:
+
+  ```caddyfile
+  https://203.0.113.5 {
+      tls internal              # Caddy's local CA; install its root on clients
+      reverse_proxy 127.0.0.1:3000
+  }
+  ```
+
+  For `git` over such a cert, either install Caddy's root CA on each client or,
+  per-repo only, `git -c http.sslVerify=false clone https://203.0.113.5/...`.
+
+- **An IP certificate** from a CA that issues them (e.g. ZeroSSL) — works, but
+  more setup than a hostname.
+
+A hostname is almost always less friction than self-signed certs you have to
+distribute, so prefer the `sslip.io`-style option unless you already run an
+internal CA.
+
 ## Health checks
 
 The app answers `GET /healthz` with `{"status":"ok"}` — cheap, unauthenticated,
