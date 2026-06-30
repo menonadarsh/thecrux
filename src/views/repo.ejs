@@ -8,6 +8,9 @@
   <% } else { %>
     <span class="tag tag-public"># public</span>
   <% } %>
+  <% if (repo.archived) { %>
+    <span class="tag tag-archived">archived</span>
+  <% } %>
   <% if (repo.empty) { %>
     <span class="tag tag-empty">empty</span>
   <% } else { %>

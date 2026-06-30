@@ -253,6 +253,11 @@ code { font-family: var(--font-mono); }
   background: var(--accent-soft);
 }
 .tag-public { color: var(--muted); }
+.tag-archived {
+  color: var(--faint);
+  border-color: var(--border-strong);
+  background: var(--bg-inset);
+}
 .tag-admin {
   color: var(--accent-ink);
   background: var(--accent);

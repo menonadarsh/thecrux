@@ -3,7 +3,7 @@ import { createHash, generateKeyPairSync } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import ssh2, { type Server as SshServer } from "ssh2";
-import { canRead, canWrite } from "../auth/access.js";
+import { canRead, canWrite, isArchived } from "../auth/access.js";
 import { findUserBySshKey } from "../auth/users.js";
 import { config } from "../config.js";
 import { parseRepoRef, repoDir } from "./exec.js";
@@ -151,6 +151,9 @@ function runGit(command: string, username: string | null, channel: ssh2.ServerCh
   }
   if (isWrite && !canWrite(parsed.slug, username)) {
     return fail("you do not have write access to this repository");
+  }
+  if (isWrite && isArchived(parsed.slug)) {
+    return fail("this repository is archived (read-only)");
   }
 
   const subcommand = parsed.service.replace(/^git-/, "");

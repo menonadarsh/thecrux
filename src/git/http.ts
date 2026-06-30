@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import zlib from "node:zlib";
 import { Router, type Request, type Response } from "express";
-import { canRead, canWrite, isPrivate } from "../auth/access.js";
+import { canRead, canWrite, isArchived, isPrivate } from "../auth/access.js";
 import { checkBasicAuth } from "../auth/middleware.js";
 import { repoDir } from "./exec.js";
 import { finishReceivePack } from "./transport.js";
@@ -21,6 +21,10 @@ function authorizePush(req: Request, res: Response, slug: string): boolean {
   }
   if (!canWrite(slug, user.username)) {
     res.status(403).send("You do not have write access to this repository.");
+    return false;
+  }
+  if (isArchived(slug)) {
+    res.status(403).send("This repository is archived (read-only).");
     return false;
   }
   return true;

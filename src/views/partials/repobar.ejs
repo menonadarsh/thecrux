@@ -63,8 +63,11 @@
     <% if (locals.currentUser && currentUser.username === rbRepo.owner) { %>
       <a class="repotab <%= rbActive === 'settings' ? 'is-active' : '' %>" href="<%= rbBase %>/settings">settings</a>
     <% } %>
+    <% if (rbRepo.archived) { %>
+      <span class="repobar-vis tag tag-archived" title="archived (read-only)">archived</span>
+    <% } %>
     <% if (rbRepo.private) { %>
-      <span class="repobar-vis tag tag-private" title="private repository">🔒 private</span>
+      <span class="tag tag-private<%= rbRepo.archived ? '' : ' repobar-vis' %>" title="private repository">🔒 private</span>
     <% } %>
   </nav>
 </div>
