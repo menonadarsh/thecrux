@@ -1,4 +1,5 @@
 import { Router, type Request } from "express";
+import { record, recordReq } from "../audit.js";
 import {
   consumeInvite,
   getRegistrationPolicy,
@@ -55,6 +56,7 @@ authRouter.post("/login", (req, res) => {
   const next = safeNext(req.body.next);
   const user = authenticate(username, password);
   if (!user) {
+    record({ action: "login.failure", actor: null, ip: req.ip, detail: `username: ${username}` });
     res.status(401).render("login", {
       error: "Invalid username or password.",
       next,
@@ -62,6 +64,7 @@ authRouter.post("/login", (req, res) => {
     });
     return;
   }
+  record({ action: "login.success", actor: user.username, ip: req.ip });
   res.cookie(SESSION_COOKIE, createSession(user.username), cookieOpts(req));
   res.redirect(next);
 });
@@ -105,6 +108,7 @@ authRouter.post("/register", async (req, res, next) => {
     const user = await createUser(username, password, displayName);
     // Spend the invite only once the account actually exists.
     if (mode === "invite") await consumeInvite(invite);
+    record({ action: "register", actor: user.username, ip: req.ip, detail: mode });
     res.cookie(SESSION_COOKIE, createSession(user.username), cookieOpts(req));
     res.redirect(redirect);
   } catch (err) {
@@ -113,7 +117,8 @@ authRouter.post("/register", async (req, res, next) => {
   }
 });
 
-authRouter.post("/logout", (_req, res) => {
+authRouter.post("/logout", (req, res) => {
+  recordReq(req, "logout");
   res.clearCookie(SESSION_COOKIE, { path: "/" });
   res.redirect("/");
 });

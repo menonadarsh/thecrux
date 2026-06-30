@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { recordReq } from "../audit.js";
 import { requireAuth } from "../auth/middleware.js";
 import { getCommit, listCommits } from "../git/history.js";
 import { listBranches, listRefNames, listTags } from "../git/refs.js";
@@ -145,6 +146,7 @@ reposRouter.post("/new", requireAuth, async (req, res, next) => {
     const repo = await createRepo(req.currentUser!.username, name, description, {
       private: visibility !== "public",
     });
+    recordReq(req, "repo.create", { target: repo.slug, detail: repo.private ? "private" : "public" });
     res.redirect(base(repo));
   } catch (err) {
     if (err instanceof RepoError) {
@@ -478,7 +480,9 @@ reposRouter.post("/:owner/:name/settings/visibility", requireAuth, async (req, r
   try {
     const repo = await requireOwner(req, res);
     if (!repo) return;
-    await setPrivate(repo.slug, String(req.body.visibility ?? "private") !== "public");
+    const makePrivate = String(req.body.visibility ?? "private") !== "public";
+    await setPrivate(repo.slug, makePrivate);
+    recordReq(req, "repo.visibility", { target: repo.slug, detail: makePrivate ? "private" : "public" });
     res.redirect(`${base(repo)}/settings`);
   } catch (err) {
     next(err);
@@ -498,6 +502,7 @@ reposRouter.post("/:owner/:name/settings/collaborators", requireAuth, async (req
       return void (await renderSettings(req, res, repo, "The owner already has full access.", 400));
     }
     await addCollaborator(repo.slug, getUser(username)!.username);
+    recordReq(req, "collaborator.add", { target: repo.slug, detail: getUser(username)!.username });
     res.redirect(`${base(repo)}/settings`);
   } catch (err) {
     next(err);
@@ -511,7 +516,9 @@ reposRouter.post(
     try {
       const repo = await requireOwner(req, res);
       if (!repo) return;
-      await removeCollaborator(repo.slug, String(req.body.username ?? ""));
+      const removed = String(req.body.username ?? "");
+      await removeCollaborator(repo.slug, removed);
+      recordReq(req, "collaborator.remove", { target: repo.slug, detail: removed });
       res.redirect(`${base(repo)}/settings`);
     } catch (err) {
       next(err);

@@ -302,6 +302,47 @@ a.usermenu-item { text-decoration: none; }
   border-radius: 4px;
 }
 .token-dates { font-size: 12px; }
+
+/* ---------- Audit log ---------- */
+.audit-filter { display: flex; gap: 8px; align-items: center; }
+.audit-filter input {
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-inset);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.audit-filter input:focus { outline: none; border-color: var(--accent); }
+table.audit {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+table.audit th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-strong);
+}
+table.audit td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.audit tr:last-child td { border-bottom: 0; }
+.audit-ts { white-space: nowrap; color: var(--muted); }
+.audit-action { color: var(--accent); }
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
 .ssh-fp {
   font-size: 12px;
   color: var(--muted);
