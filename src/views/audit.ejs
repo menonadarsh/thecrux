@@ -1,0 +1,59 @@
+<%- include("partials/header", { title: "audit log", crumb: "~/admin/audit" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">admin audit</span>
+  <span class="termline-meta"><%= total %> <%= total === 1 ? "event" : "events" %></span>
+</section>
+
+<div class="toolbar">
+  <a class="kbtn" href="/admin">‹ admin</a>
+  <form class="audit-filter" method="get" action="/admin/audit">
+    <input type="text" name="actor" value="<%= filter.actor %>" placeholder="actor" autocomplete="off" spellcheck="false" />
+    <input type="text" name="action" value="<%= filter.action %>" placeholder="action…" autocomplete="off" spellcheck="false" />
+    <button class="kbtn" type="submit">filter</button>
+    <% if (filter.actor || filter.action) { %><a class="kbtn" href="/admin/audit">clear</a><% } %>
+  </form>
+</div>
+
+<% if (events.length === 0) { %>
+  <div class="blank"><p class="muted">No matching events.</p></div>
+<% } else { %>
+  <table class="audit">
+    <thead>
+      <tr><th>when</th><th>actor</th><th>action</th><th>target</th><th>ip</th><th>detail</th></tr>
+    </thead>
+    <tbody>
+      <% events.forEach(function (e) { %>
+        <tr>
+          <td class="audit-ts" title="<%= e.ts %>"><%= new Date(e.ts).toLocaleString() %></td>
+          <td><% if (e.actor) { %><a href="/<%= e.actor %>">@<%= e.actor %></a><% } else { %><span class="muted">—</span><% } %></td>
+          <td><code class="audit-action"><%= e.action %></code></td>
+          <td><%= e.target || "" %></td>
+          <td class="muted"><%= e.ip || "" %></td>
+          <td class="muted"><%= e.detail || "" %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+
+  <%
+    var totalPages = Math.max(1, Math.ceil(total / pageSize));
+    function pageHref(p) {
+      var q = [];
+      if (filter.actor) q.push("actor=" + encodeURIComponent(filter.actor));
+      if (filter.action) q.push("action=" + encodeURIComponent(filter.action));
+      q.push("page=" + p);
+      return "/admin/audit?" + q.join("&");
+    }
+  %>
+  <% if (totalPages > 1) { %>
+    <div class="pager">
+      <% if (page > 1) { %><a class="kbtn" href="<%= pageHref(page - 1) %>">‹ newer</a><% } %>
+      <span class="muted">page <%= page %> / <%= totalPages %></span>
+      <% if (page < totalPages) { %><a class="kbtn" href="<%= pageHref(page + 1) %>">older ›</a><% } %>
+    </div>
+  <% } %>
+<% } %>
+
+<%- include("partials/footer") %>

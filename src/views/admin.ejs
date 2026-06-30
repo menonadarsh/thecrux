@@ -6,6 +6,10 @@
   <span class="termline-meta"><%= users.length %> <%= users.length === 1 ? "user" : "users" %></span>
 </section>
 
+<div class="toolbar">
+  <a class="kbtn" href="/admin/audit">audit log ›</a>
+</div>
+
 <% if (error) { %>
   <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
 <% } %>

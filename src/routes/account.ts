@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { recordReq } from "../audit.js";
 import { requireAuth } from "../auth/middleware.js";
 import { SESSION_COOKIE } from "../auth/session.js";
 import {
@@ -81,6 +82,7 @@ accountRouter.post("/settings/password", requireAuth, async (req, res, next) => 
       String(req.body.currentPassword ?? ""),
       String(req.body.newPassword ?? ""),
     );
+    recordReq(req, "password.change");
     res.redirect("/settings?saved=password");
   } catch (err) {
     if (err instanceof AuthError) return void (await renderAccount(req, res, { error: err.message }, 400));
@@ -93,6 +95,7 @@ accountRouter.post("/settings/tokens", requireAuth, async (req, res, next) => {
   try {
     const name = String(req.body.name ?? "");
     const { secret } = await createToken(req.currentUser!.username, name);
+    recordReq(req, "token.create", { target: name.trim() });
     await renderAccount(req, res, { newToken: { name: name.trim(), secret } });
   } catch (err) {
     if (err instanceof AuthError) return void (await renderAccount(req, res, { error: err.message }, 400));
@@ -104,6 +107,7 @@ accountRouter.post("/settings/tokens", requireAuth, async (req, res, next) => {
 accountRouter.post("/settings/tokens/revoke", requireAuth, async (req, res, next) => {
   try {
     await revokeToken(req.currentUser!.username, String(req.body.id ?? ""));
+    recordReq(req, "token.revoke");
     res.redirect("/settings");
   } catch (err) {
     next(err);
@@ -113,11 +117,12 @@ accountRouter.post("/settings/tokens/revoke", requireAuth, async (req, res, next
 // Add an SSH public key.
 accountRouter.post("/settings/ssh-keys", requireAuth, async (req, res, next) => {
   try {
-    await addSshKey(
+    const key = await addSshKey(
       req.currentUser!.username,
       String(req.body.publicKey ?? ""),
       String(req.body.name ?? ""),
     );
+    recordReq(req, "sshkey.add", { target: key.name, detail: key.fingerprint });
     res.redirect("/settings?saved=sshkey");
   } catch (err) {
     if (err instanceof AuthError) return void (await renderAccount(req, res, { error: err.message }, 400));
@@ -129,6 +134,7 @@ accountRouter.post("/settings/ssh-keys", requireAuth, async (req, res, next) => 
 accountRouter.post("/settings/ssh-keys/remove", requireAuth, async (req, res, next) => {
   try {
     await removeSshKey(req.currentUser!.username, String(req.body.id ?? ""));
+    recordReq(req, "sshkey.remove");
     res.redirect("/settings");
   } catch (err) {
     next(err);
@@ -157,6 +163,7 @@ accountRouter.post("/settings/delete", requireAuth, async (req, res, next) => {
         400,
       ));
     }
+    recordReq(req, "account.delete", { target: user.username });
     await deleteOwnerRepos(user.username);
     await deleteUser(user.username);
     res.clearCookie(SESSION_COOKIE, { path: "/" });
