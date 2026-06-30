@@ -25,6 +25,23 @@ export function isValidOwner(owner: string): boolean {
   return OWNER_RE.test(owner);
 }
 
+/** Namespace names that collide with top-level routes and can't be claimed. */
+const RESERVED_NAMESPACES = new Set([
+  "new",
+  "orgs",
+  "login",
+  "logout",
+  "register",
+  "settings",
+  "admin",
+  "api",
+  "healthz",
+]);
+
+export function isReservedNamespace(name: string): boolean {
+  return RESERVED_NAMESPACES.has(name.toLowerCase());
+}
+
 export interface RepoRef {
   owner: string;
   name: string;

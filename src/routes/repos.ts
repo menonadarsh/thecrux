@@ -35,6 +35,7 @@ import {
   setPrivate,
 } from "../auth/access.js";
 import { loadReadableRepo } from "../auth/guard.js";
+import { getOrg, isOrgMember, isOrgOwner, orgsForUser } from "../auth/orgs.js";
 import { addWebhook, listWebhooks, removeWebhook, WebhookError } from "../webhooks.js";
 import {
   addLabel,
@@ -137,29 +138,44 @@ reposRouter.get("/", async (req, res, next) => {
   }
 });
 
+/** Namespaces the user may create a repo under: their account + their orgs. */
+function ownerChoices(username: string): string[] {
+  return [username, ...orgsForUser(username).map((o) => o.name)];
+}
+
 // New repository form.
-reposRouter.get("/new", requireAuth, (_req, res) => {
-  res.render("new", { error: null, values: { name: "", description: "", visibility: "private" } });
+reposRouter.get("/new", requireAuth, (req, res) => {
+  const me = req.currentUser!.username;
+  res.render("new", {
+    error: null,
+    owners: ownerChoices(me),
+    values: { name: "", description: "", visibility: "private", owner: me },
+  });
 });
 
-// Create a repository (under the current user's namespace).
+// Create a repository under the chosen namespace (the user, or an org they belong to).
 reposRouter.post("/new", requireAuth, async (req, res, next) => {
+  const me = req.currentUser!.username;
   const name = String(req.body.name ?? "");
   const description = String(req.body.description ?? "");
   const visibility = String(req.body.visibility ?? "private");
-  try {
-    const repo = await createRepo(req.currentUser!.username, name, description, {
-      private: visibility !== "public",
+  const owner = String(req.body.owner ?? me).trim() || me;
+  const reRender = (error: string, status = 400) =>
+    res.status(status).render("new", {
+      error,
+      owners: ownerChoices(me),
+      values: { name, description, visibility, owner },
     });
+  try {
+    // May only create under your own account or an org you're a member of.
+    if (owner.toLowerCase() !== me.toLowerCase() && !isOrgMember(owner, me)) {
+      return void reRender("You can't create a repository under that owner.", 403);
+    }
+    const repo = await createRepo(owner, name, description, { private: visibility !== "public" });
     recordReq(req, "repo.create", { target: repo.slug, detail: repo.private ? "private" : "public" });
     res.redirect(base(repo));
   } catch (err) {
-    if (err instanceof RepoError) {
-      res
-        .status(err.status)
-        .render("new", { error: err.message, values: { name, description, visibility } });
-      return;
-    }
+    if (err instanceof RepoError) return void reRender(err.message, err.status);
     next(err);
   }
 });
@@ -221,8 +237,30 @@ reposRouter.get("/:owner", async (req, res, next) => {
     }
     const username = req.currentUser?.username;
     const repos = (await listReposByOwner(owner)).filter((r) => canReadSummary(r, username));
+
+    // An org namespace renders the org view; otherwise the user page. 404 if neither.
+    const org = getOrg(owner);
+    if (org) {
+      const members = Object.entries(org.members).map(([u, role]) => ({
+        username: u,
+        role,
+        displayName: getUser(u)?.displayName ?? u,
+      }));
+      res.render("org", {
+        org,
+        repos,
+        members,
+        isMember: isOrgMember(owner, username),
+        isOrgOwner: isOrgOwner(owner, username),
+      });
+      return;
+    }
     const user = getUser(owner);
-    res.render("user", { owner, repos, displayName: user?.displayName ?? owner });
+    if (!user) {
+      res.status(404).render("404", { name: owner });
+      return;
+    }
+    res.render("user", { owner, repos, displayName: user.displayName });
   } catch (err) {
     next(err);
   }

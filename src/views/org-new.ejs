@@ -1,0 +1,27 @@
+<%- include("partials/header", { title: "new organization", crumb: "~/orgs/new" }) %>
+
+<section class="termline">
+  <span class="termline-prompt">crux<span class="brand-caret">❯</span></span>
+  <span class="termline-cmd">init organization</span>
+</section>
+
+<% if (error) { %>
+  <div class="alert"><span class="alert-mark">✗</span> <%= error %></div>
+<% } %>
+
+<form class="form" method="post" action="/orgs/new">
+  <label class="field">
+    <span class="field-label">name</span>
+    <div class="field-mono">
+      <span class="field-prefix">crux/</span>
+      <input type="text" name="name" value="<%= values.name %>" placeholder="acme" autocomplete="off" spellcheck="false" autofocus required />
+    </div>
+    <span class="field-hint">A shared namespace for repositories. You'll be its first owner.</span>
+  </label>
+  <div class="form-actions">
+    <button class="kbtn primary" type="submit">create organization</button>
+    <a class="kbtn" href="/">cancel</a>
+  </div>
+</form>
+
+<%- include("partials/footer") %>
