@@ -47,6 +47,34 @@ export async function setPrivate(slug: string, value: boolean): Promise<void> {
   }
 }
 
+function archivedPath(slug: string): string | null {
+  const dir = repoDir(slug);
+  return dir ? path.join(dir, "crux-archived") : null;
+}
+
+/** True if the repo is archived (read-only — pushes are refused). */
+export function isArchived(slug: string): boolean {
+  const file = archivedPath(slug);
+  if (!file) return false;
+  try {
+    fs.accessSync(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Archive or unarchive a repo via its `crux-archived` marker. */
+export async function setArchived(slug: string, value: boolean): Promise<void> {
+  const file = archivedPath(slug);
+  if (!file) return;
+  if (value) {
+    await fsp.writeFile(file, "1\n", "utf8");
+  } else {
+    await fsp.rm(file, { force: true });
+  }
+}
+
 function eq(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
 }

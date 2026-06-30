@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { config } from "../config.js";
-import { isPrivate, setPrivate } from "../auth/access.js";
+import { isArchived, isPrivate, setPrivate } from "../auth/access.js";
 import { seedDefaultLabels } from "../repo/labels.js";
 import { isValidOwner, isValidRepoName, parseRepoRef, repoDirFor } from "./exec.js";
 
@@ -22,6 +22,8 @@ export interface RepoSummary {
   defaultBranch: string | null;
   /** Whether the repo is private (visible only to owner + collaborators). */
   private: boolean;
+  /** Whether the repo is archived (read-only — pushes are refused). */
+  archived: boolean;
   updatedAt: Date;
 }
 
@@ -166,8 +168,49 @@ export async function getRepo(slug: string): Promise<RepoSummary | null> {
     empty,
     defaultBranch,
     private: isPrivate(slugId),
+    archived: isArchived(slugId),
     updatedAt: stat.mtime,
   };
+}
+
+/** Rename a repo within its owner's namespace. Returns the renamed summary. */
+export async function renameRepo(owner: string, name: string, rawNewName: string): Promise<RepoSummary> {
+  const newName = normalizeRepoName(rawNewName);
+  if (newName === name) return (await getRepo(`${owner}/${name}`))!;
+  const from = repoDirFor(owner, name);
+  const to = repoDirFor(owner, newName);
+  if (!(await exists(from))) throw new RepoError("Repository not found.", 404);
+  if (await exists(to)) {
+    throw new RepoError(`A repository named '${owner}/${newName}' already exists.`, 409);
+  }
+  await fs.rename(from, to);
+  return (await getRepo(`${owner}/${newName}`))!;
+}
+
+/**
+ * Transfer a repo to another owner's namespace. The caller must ensure the new
+ * owner exists. Sidecar metadata (collaborators, labels, issues…) lives inside
+ * the repo dir and moves with it; the `crux-owner` record is rewritten.
+ */
+export async function transferRepo(owner: string, name: string, rawNewOwner: string): Promise<RepoSummary> {
+  const newOwner = normalizeOwner(rawNewOwner);
+  if (newOwner === owner) return (await getRepo(`${owner}/${name}`))!;
+  const from = repoDirFor(owner, name);
+  const to = repoDirFor(newOwner, name);
+  if (!(await exists(from))) throw new RepoError("Repository not found.", 404);
+  if (await exists(to)) {
+    throw new RepoError(`'${newOwner}' already has a repository named '${name}'.`, 409);
+  }
+  await fs.mkdir(path.dirname(to), { recursive: true });
+  await fs.rename(from, to);
+  await fs.writeFile(path.join(to, "crux-owner"), `${newOwner}\n`, "utf8");
+  return (await getRepo(`${newOwner}/${name}`))!;
+}
+
+/** Permanently delete a single repository (its whole directory). */
+export async function deleteRepo(owner: string, name: string): Promise<void> {
+  const dir = repoDirFor(owner, name);
+  await fs.rm(dir, { recursive: true, force: true });
 }
 
 /** List the repos owned by a single owner. */

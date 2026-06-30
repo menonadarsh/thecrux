@@ -5,10 +5,13 @@ import { getCommit, listCommits } from "../git/history.js";
 import { listBranches, listRefNames, listTags } from "../git/refs.js";
 import {
   createRepo,
+  deleteRepo,
   getRepo,
   listRepos,
   listReposByOwner,
+  renameRepo,
   RepoError,
+  transferRepo,
   type RepoSummary,
 } from "../git/repos.js";
 import {
@@ -28,6 +31,7 @@ import {
   isOwner,
   listCollaborators,
   removeCollaborator,
+  setArchived,
   setPrivate,
 } from "../auth/access.js";
 import { loadReadableRepo } from "../auth/guard.js";
@@ -551,6 +555,75 @@ reposRouter.post("/:owner/:name/settings/labels/remove", requireAuth, async (req
     if (!repo) return;
     await removeLabel(repo.slug, String(req.body.name ?? ""));
     res.redirect(`${base(repo)}/settings`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Archive / unarchive (read-only toggle).
+reposRouter.post("/:owner/:name/settings/archive", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    const archive = String(req.body.archive ?? "") === "1";
+    await setArchived(repo.slug, archive);
+    recordReq(req, "repo.archive", { target: repo.slug, detail: archive ? "archived" : "unarchived" });
+    res.redirect(`${base(repo)}/settings`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Rename within the same owner.
+reposRouter.post("/:owner/:name/settings/rename", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    const renamed = await renameRepo(repo.owner, repo.name, String(req.body.name ?? ""));
+    recordReq(req, "repo.rename", { target: renamed.slug, detail: `from ${repo.slug}` });
+    res.redirect(`${base(renamed)}/settings`);
+  } catch (err) {
+    if (err instanceof RepoError) {
+      const repo = await getRepo(slugOf(req));
+      if (repo) return void (await renderSettings(req, res, repo, err.message, err.status));
+    }
+    next(err);
+  }
+});
+
+// Transfer to another owner.
+reposRouter.post("/:owner/:name/settings/transfer", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    const newOwner = String(req.body.owner ?? "").trim();
+    const target = getUser(newOwner);
+    if (!target) {
+      return void (await renderSettings(req, res, repo, `No such user '${newOwner}'.`, 400));
+    }
+    const moved = await transferRepo(repo.owner, repo.name, target.username);
+    recordReq(req, "repo.transfer", { target: moved.slug, detail: `from ${repo.slug}` });
+    res.redirect(base(moved));
+  } catch (err) {
+    if (err instanceof RepoError) {
+      const repo = await getRepo(slugOf(req));
+      if (repo) return void (await renderSettings(req, res, repo, err.message, err.status));
+    }
+    next(err);
+  }
+});
+
+// Permanently delete (type-to-confirm with "owner/name").
+reposRouter.post("/:owner/:name/settings/delete", requireAuth, async (req, res, next) => {
+  try {
+    const repo = await requireOwner(req, res);
+    if (!repo) return;
+    if (String(req.body.confirm ?? "").trim() !== repo.slug) {
+      return void (await renderSettings(req, res, repo, `Type "${repo.slug}" to confirm deletion.`, 400));
+    }
+    await deleteRepo(repo.owner, repo.name);
+    recordReq(req, "repo.delete", { target: repo.slug });
+    res.redirect(`/${enc(repo.owner)}`);
   } catch (err) {
     next(err);
   }

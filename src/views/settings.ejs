@@ -91,4 +91,54 @@
   </div>
 </section>
 
+<section class="card">
+  <div class="card-head"><span class="card-title">repository</span></div>
+  <div class="settings-body">
+    <form class="collab-add" method="post" action="<%= repoBase(repo) %>/settings/rename">
+      <div class="field-mono">
+        <span class="field-prefix">crux/<%= repo.owner %>/</span>
+        <input type="text" name="name" value="<%= repo.name %>" autocomplete="off" spellcheck="false" required />
+      </div>
+      <button class="kbtn" type="submit">rename</button>
+    </form>
+
+    <form class="collab-add" method="post" action="<%= repoBase(repo) %>/settings/transfer">
+      <div class="field-mono">
+        <span class="field-prefix">transfer to @</span>
+        <input type="text" name="owner" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false" required />
+      </div>
+      <button class="kbtn" type="submit">transfer</button>
+    </form>
+
+    <p class="muted">
+      <% if (repo.archived) { %>
+        This repository is <span class="tag tag-archived">archived</span> — read-only, pushes are refused.
+      <% } else { %>
+        Archiving makes the repository read-only (pushes refused). You can unarchive later.
+      <% } %>
+    </p>
+    <form method="post" action="<%= repoBase(repo) %>/settings/archive" class="inline-form">
+      <input type="hidden" name="archive" value="<%= repo.archived ? '0' : '1' %>" />
+      <button class="kbtn" type="submit"><%= repo.archived ? 'unarchive' : 'archive' %></button>
+    </form>
+  </div>
+</section>
+
+<section class="card card-danger">
+  <div class="card-head"><span class="card-title">delete repository</span></div>
+  <div class="settings-body">
+    <p class="muted">
+      Permanently deletes <strong><%= repo.slug %></strong> and all its history,
+      issues and pull requests. This cannot be undone.
+    </p>
+    <form class="collab-add" method="post" action="<%= repoBase(repo) %>/settings/delete"
+          onsubmit="return confirm('Delete <%= repo.slug %>? This cannot be undone.')">
+      <div class="field-mono">
+        <input type="text" name="confirm" placeholder="type <%= repo.slug %> to confirm" autocomplete="off" spellcheck="false" required />
+      </div>
+      <button class="kbtn danger" type="submit">delete</button>
+    </form>
+  </div>
+</section>
+
 <%- include("partials/footer") %>
