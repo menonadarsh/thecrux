@@ -1611,6 +1611,13 @@ a.commit-subject { color: var(--text); }
   border-radius: 10px;
   background: var(--bg-inset);
 }
+.selfhost {
+  margin: 56px auto 24px;
+  max-width: 680px;
+  text-align: center;
+}
+.selfhost .copy-row { margin: 18px auto; justify-content: center; }
+.selfhost .hero-sub { margin-left: auto; margin-right: auto; }
 .endcta-line { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
 .endcta-line .t-prompt { color: var(--text); }
 .endcta-h {

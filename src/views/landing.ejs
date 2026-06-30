@@ -86,10 +86,38 @@
     <span class="feat-p">Real diffs, labels and assignees. Review where the work is — keyboard-first, with a <kbd>⌘K</kbd> palette.</span>
   </a>
   <a class="feat" href="/register">
+    <span class="feat-glyph">◫</span>
+    <span class="feat-h">Organizations</span>
+    <span class="feat-p">Shared namespaces with owners and members. Group repos for a team — everyone in the org can push.</span>
+  </a>
+  <a class="feat" href="/register">
+    <span class="feat-glyph">↯</span>
+    <span class="feat-h">Webhooks &amp; audit log</span>
+    <span class="feat-p">Fire signed post-receive payloads at your CI. Every security-relevant action lands in an append-only audit log.</span>
+  </a>
+  <a class="feat" href="/register">
     <span class="feat-glyph">⬡</span>
     <span class="feat-h">Self-hosted &amp; private</span>
-    <span class="feat-p">A single Node app + Docker, behind your own TLS. No telemetry; your code never leaves your box.</span>
+    <span class="feat-p">A single Node app + Docker, behind your own TLS. No database, no telemetry; your code never leaves your box.</span>
   </a>
+</section>
+
+<section class="selfhost" id="get">
+  <p class="hero-eyebrow">// open source · MIT · no account, no download gate</p>
+  <h2 class="endcta-h">Run your own in one command.</h2>
+  <p class="hero-sub">
+    thecrux is free and self-hosted — grab the Docker image and you're live.
+    The only account you make is the admin account on <em>your</em> instance.
+  </p>
+  <div class="copy-row" data-copy="docker run -p 3000:3000 -p 2222:2222 -v crux-data:/data thecrux">
+    <code class="copy-text">docker run -p 3000:3000 -p 2222:2222 -v crux-data:/data thecrux</code>
+    <button class="copy-btn" type="button" title="Copy">copy</button>
+  </div>
+  <p class="hero-sub">
+    Prefer source? <code>git clone</code>, <code>npm install</code>,
+    <code>npm run dev</code>. See the
+    <a class="hero-link" href="https://github.com/menonadarsh/thecrux">deploy guide &amp; docs</a>.
+  </p>
 </section>
 
 <section class="endcta">

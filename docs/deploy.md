@@ -2,7 +2,13 @@
 
 thecrux is a single Node app that stores everything on disk under one data dir —
 bare git repos, users, settings, the session secret and the SSH host key. There
-is no database. That keeps deployment, backups and moving hosts simple.
+is no database. That keeps deployment, backups and moving hosts simple. For the
+architecture behind that, see [`design.md`](design.md).
+
+thecrux is open source (MIT) and distributed freely — there is no product
+account or download gate. Get it as a Docker image (the path below) or from
+source; the only account you create is the admin account on your own instance,
+on first run.
 
 The same image serves two shapes of deployment:
 
@@ -48,6 +54,13 @@ HOST=0.0.0.0
 For SSH, either tell users the port (`ssh://git@git.example.com:2222/...`) or map
 host `22` to the container's `2222` in `docker-compose.yml` (`"22:2222"`) so bare
 `git@git.example.com:owner/repo.git` works.
+
+## Health checks
+
+The app answers `GET /healthz` with `{"status":"ok"}` — cheap, unauthenticated,
+and safe to hit from a load balancer or orchestrator liveness/readiness probe.
+On `SIGTERM`/`SIGINT` the server drains in-flight HTTP and closes the SSH server
+before exiting, so rolling restarts don't cut active clones mid-stream.
 
 ## Configuration
 
