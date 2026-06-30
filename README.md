@@ -1,24 +1,58 @@
 # thecrux
 
-A self-hosted code hosting solution — like GitHub — built incrementally.
+A self-hosted git server — like GitHub, but it runs on your own box and your
+code never leaves it. Keyboard-first web UI, issues and pull requests, private
+by default. The crux is in the code.
+
+> **Architecture & design:** [`docs/design.md`](docs/design.md).
+> **Running it in production:** [`docs/deploy.md`](docs/deploy.md).
 
 ## Status
 
-**v0.9 — issues & comments** — _roadmap complete_ 🎉
+A self-hosted git server you can actually run. What's in the box:
 
-- [x] Create bare git repositories from a web UI
-- [x] List repositories on the home page
-- [x] Repository detail page with clone instructions
+- [x] Create bare git repositories from a web UI — **private by default**
+- [x] Owner-namespaced repos (`/:owner/:repo`) for users **and organizations**
 - [x] Keyboard-first UI (command palette, vim nav, light/dark themes)
-- [x] Smart-HTTP git clone/push over the web
+- [x] **Smart-HTTP** git clone/push over the web
+- [x] **git over SSH** with per-account public keys
 - [x] Browse files & directories (tree, file view, raw, README preview)
 - [x] Commit history — log, per-commit diffs, path-filtered history
 - [x] Markdown rendering (sanitized) + syntax highlighting (theme-aware)
 - [x] Branches & tags — overview pages, ref switcher, repo subnav
-- [x] Users & authentication — accounts, sessions, repo ownership, push auth
+- [x] Users & authentication — accounts, sessions, **revocable access tokens**
+- [x] Access control — owner + collaborators, private/public, org membership
 - [x] Pull requests — compare refs, view diff, merge (ff + merge commit)
-- [x] Issues — tracker with open/close and markdown comment threads
+- [x] Issues — tracker with open/close, labels, assignees, markdown threads
       (the same thread powers pull-request conversations)
+- [x] **Organizations** — shared repo namespaces with owners and members
+- [x] **Post-receive webhooks** (optional HMAC-signed payloads)
+- [x] **Admin panel** — open / invite-only / closed registration, user management
+- [x] **Audit log** + **backup/restore** CLI
+
+## Get thecrux
+
+thecrux is open source (MIT) and **distributed freely — no account, no email
+gate, no license server**. Download it and run it. The only account you ever
+create is the one on your **own instance** after you deploy it (the first such
+account becomes that instance's admin).
+
+The headline path is **Docker**:
+
+```bash
+docker run -p 3000:3000 -p 2222:2222 -v crux-data:/data thecrux   # → http://localhost:3000
+```
+
+Or from source (Node ≥ 20 and `git` on the host):
+
+```bash
+git clone <this-repo> && cd thecrux
+npm install
+npm run dev      # auto-reload at http://127.0.0.1:3000
+```
+
+See [Deployment](#deployment-docker) below and
+[`docs/deploy.md`](docs/deploy.md) for the production setup (TLS, SSH, backups).
 
 ### Pull requests
 
@@ -32,20 +66,28 @@ Conflicting branches are detected and blocked.
 ### Authentication
 
 - Register at `/register`, sign in at `/login`. Passwords are hashed with
-  scrypt; sessions are signed cookies.
+  scrypt; sessions are signed cookies. The **first** account on a fresh
+  instance becomes the **admin**; after that, account creation follows the
+  instance's registration policy (open / invite-only / closed).
 - Creating a repository requires being signed in; the creator is recorded as
   the repo **owner**.
-- **`git push` requires authentication** (HTTP Basic, your crux username +
-  password). Cloning is anonymous.
+- **`git push` requires authentication** — HTTP Basic with your username plus
+  either your password or, preferred, a **revocable access token** created on
+  your account page. The token is shown once and stored only as a hash.
+- For **git over SSH**, add a public key on your account page (see below).
 
 ### Access control
 
 Each repo has an **owner** (its namespace) with full/admin rights and a list of
 **collaborators** with write access, managed on the repo's `/settings` page
-(owner only). Browsing and cloning are public; **write actions** — `git push`,
+(owner only). For an **organization** namespace, org owners administer and any
+org member can write. Repos are **private by default** — visible and cloneable
+only by people with access — and can be flipped to public, in which case
+browsing and cloning are open to everyone. **Write actions** — `git push`,
 merging pull requests, and closing/reopening issues & PRs — require write
-access (an author may always close/reopen their own issue or PR). Push without
-access returns `403`.
+access (an author may always close/reopen their own issue or PR). Reads on a
+private repo without access return `404`/`403`; a push without access returns
+`403`.
 
 ```bash
 git push http://<username>@localhost:3000/<username>/my-project.git main
@@ -142,15 +184,19 @@ In Docker, run `node dist/cli.js backup`/`restore` inside the container. See
 
 Environment variables:
 
-| Variable             | Default            | Description                                         |
-| -------------------- | ------------------ | --------------------------------------------------- |
-| `PORT`               | `3000`             | HTTP port                                           |
-| `HOST`               | `127.0.0.1`        | Bind address                                        |
-| `CRUX_REPOS_DIR`     | `./data/repos`     | Where bare repositories are stored                  |
-| `CRUX_SSH_ENABLED`   | `true`             | Enable the git-over-SSH server (`0` to disable)     |
-| `CRUX_SSH_PORT`      | `2222`             | SSH port (unprivileged so it works without root)    |
-| `CRUX_SSH_HOST`      | `$HOST`            | SSH bind address                                    |
-| `CRUX_SSH_HOST_KEY`  | _(generated)_      | Path to a PEM host key — bring your own for stable `known_hosts` across replicas |
+| Variable               | Default            | Description                                         |
+| ---------------------- | ------------------ | --------------------------------------------------- |
+| `PORT`                 | `3000`             | HTTP port                                           |
+| `HOST`                 | `127.0.0.1`        | Bind address                                        |
+| `CRUX_DATA_DIR`        | `./data`           | Base data directory (repos, users, secret, …)       |
+| `CRUX_REPOS_DIR`       | `$CRUX_DATA_DIR/repos` | Where bare repositories are stored              |
+| `CRUX_SECRET`          | _(generated)_      | Session signing key; pin it across rebuilds/replicas |
+| `CRUX_TRUST_PROXY`     | `false`            | Trust `X-Forwarded-*` from a TLS-terminating proxy (e.g. `1`) |
+| `CRUX_SECURE_COOKIES`  | `false`            | Force the `Secure` cookie flag (auto-set on HTTPS anyway) |
+| `CRUX_SSH_ENABLED`     | `true`             | Enable the git-over-SSH server (`0` to disable)     |
+| `CRUX_SSH_PORT`        | `2222`             | SSH port (unprivileged so it works without root)    |
+| `CRUX_SSH_HOST`        | `$HOST`            | SSH bind address                                    |
+| `CRUX_SSH_HOST_KEY`    | _(generated)_      | Path to a PEM host key — bring your own for stable `known_hosts` across replicas |
 
 ### git over SSH
 
@@ -169,6 +215,18 @@ git clone ssh://git@your-host:2222/<username>/my-project.git
 ## How it works
 
 Each repository is a real bare git repo (`<name>.git`) created with
-`git init --bare`. This keeps thecrux interoperable with standard git from
-day one — future increments will serve these repos over the smart-HTTP
-protocol so you can `git clone` and `git push` directly.
+`git init --bare`, stored under the owner's namespace at
+`data/repos/<owner>/<name>.git`. thecrux serves and manipulates these with
+stock `git` plumbing — there's no reimplementation of git — so it's fully
+interoperable with any git client, and a repo dir is never trapped: copy it and
+its issues, PRs, collaborators and visibility (all `crux-*` sidecar files) come
+with it. Both transports (Smart-HTTP and SSH) authenticate against the same
+user store and the same per-repo access rules, then hand the object transfer to
+`git`.
+
+There is **no database** — accounts, orgs, instance settings, the session
+secret and the audit log all live as files under one data dir, which is why
+backups are a `tar` and moving hosts is a copy.
+
+For the full picture — data model, request lifecycle, security posture and the
+distribution model — see [`docs/design.md`](docs/design.md).
