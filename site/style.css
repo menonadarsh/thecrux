@@ -178,18 +178,6 @@ kbd { background: var(--bg-inset); border: 1px solid var(--border-strong); borde
 }
 .browserbar { display: flex; align-items: center; gap: 7px; padding: 9px 12px; border-bottom: 1px solid var(--border); background: var(--bg-elev); }
 .browser img { display: block; width: 100%; height: auto; }
-.shot-fallback {
-  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-  aspect-ratio: 16 / 10; padding: 24px; text-align: center;
-  background:
-    radial-gradient(var(--border) 0.5px, transparent 0.5px) 0 0 / 16px 16px,
-    var(--bg-inset);
-}
-.browser.is-empty img { display: none; }
-.browser.is-empty .shot-fallback { display: flex; }
-.fallback-mark { font-size: 22px; font-weight: 800; letter-spacing: -1px; }
-.fallback-label { color: var(--muted); font-size: 13px; }
-.fallback-hint { color: var(--faint); font-size: 11px; border: 1px dashed var(--border-strong); border-radius: 5px; padding: 2px 8px; }
 .shot figcaption { color: var(--muted); font-size: 13px; margin-top: 12px; text-align: center; }
 
 /* ---------- Get it ---------- */
