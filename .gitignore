@@ -9,3 +9,9 @@ dist/
 # Hosted repos, user accounts (password hashes) and the session secret all
 # live under data/ — never commit any of it.
 data/
+
+# Local runtime config — may hold CRUX_SECRET and other secrets.
+# .env.example (the committed template) is intentionally NOT ignored.
+.env
+.env.*
+!.env.example
