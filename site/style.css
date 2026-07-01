@@ -70,6 +70,16 @@ code { color: var(--text); background: var(--accent-soft); padding: 0.05em 0.35e
 
 .caret { color: var(--accent); font-weight: 700; }
 
+/* The brand-wordmark caret blinks like a terminal cursor. */
+.wordmark .caret,
+.hero-mark .caret,
+.foot-mark .caret { animation: blink 1.1s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .wordmark .caret,
+  .hero-mark .caret,
+  .foot-mark .caret { animation: none; }
+}
+
 /* ---------- Nav ---------- */
 .nav {
   position: sticky; top: 0; z-index: 20;
