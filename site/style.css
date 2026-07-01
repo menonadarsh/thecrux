@@ -172,13 +172,52 @@ kbd { background: var(--bg-inset); border: 1px solid var(--border-strong); borde
 /* ---------- Screenshots ---------- */
 .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
 .shot { margin: 0; }
+/* .browser is a <button> so the whole frame is click-to-enlarge + focusable. */
 .browser {
+  display: block; width: 100%; padding: 0; margin: 0; text-align: left;
+  font: inherit; color: inherit; cursor: zoom-in;
   border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden;
   background: var(--bg-inset); box-shadow: var(--shadow); position: relative;
+  transition: border-color .15s, transform .15s;
 }
+.browser:hover { border-color: var(--accent); transform: translateY(-2px); }
+.browser:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .browserbar { display: flex; align-items: center; gap: 7px; padding: 9px 12px; border-bottom: 1px solid var(--border); background: var(--bg-elev); }
 .browser img { display: block; width: 100%; height: auto; }
+
+/* Theme-matched screenshots: show the pair that matches the active theme.
+   Selectors are qualified with .browser so they outrank `.browser img`. */
+.browser img.shot-light { display: none; }
+[data-theme="light"] .browser img.shot-dark { display: none; }
+[data-theme="light"] .browser img.shot-light { display: block; }
+
+.zoom-hint {
+  position: absolute; right: 10px; bottom: 10px;
+  font-size: 11px; padding: 3px 9px; border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-elev) 88%, transparent);
+  border: 1px solid var(--border-strong); color: var(--text);
+  opacity: 0; transition: opacity .15s; pointer-events: none;
+}
+.browser:hover .zoom-hint, .browser:focus-visible .zoom-hint { opacity: 1; }
 .shot figcaption { color: var(--muted); font-size: 13px; margin-top: 12px; text-align: center; }
+
+/* ---------- Lightbox ---------- */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 3vmin;
+  background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(4px); cursor: zoom-out;
+}
+.lightbox[hidden] { display: none; }
+.lightbox img {
+  max-width: 96vw; max-height: 92vh; width: auto; height: auto;
+  border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: var(--shadow);
+}
+.lightbox-close {
+  position: fixed; top: 16px; right: 18px; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--border-strong); background: var(--bg-elev); color: var(--text);
+  font-size: 15px; cursor: pointer;
+}
+.lightbox-close:hover { background: var(--bg-hover); }
 
 /* ---------- Get it ---------- */
 .get-card {
